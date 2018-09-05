@@ -72,27 +72,33 @@ The JSL prompt used the user's input to generate a SQL query as a string. After 
 
 Here are a collection of screenshots showcasing the application:
 [Full application code found here](https://github.com/BenLu910/SAS-Projects/blob/master/JMPApplication.jsl)
+
 ## Application Window 1 - Graphs
 This application consisted of two windows. The first held all of the graphs for the data the query generated.
+
 ### Application Tab 1
 The is tab showcases an overview of the defects, it has graphs that display the distributions of vital defect variables.
 ![JMP App Tab 1](https://i.imgur.com/54r59Xf.png)
 ### Application Tab 2
+
 This tab explores the effect of priority on the completion time of a defect. 
 ![JMP App Tab 2](https://i.imgur.com/TAxJq9G.png)
 ### Application Tab 3
+
 This tab explored the completion time of defects based on different product components.
 ![JMP App Tab 3](https://i.imgur.com/4rITTYN.png)
 
 ## Application Window 2 - Data
 The second window of the application shows the data table resulting from the query.
+
 ### Defect Data Table
 This is a standard data table, but has two special links in each row. One is used to open the defect's web page and the other opens an analysis of the defect's past.
 ![JMP App Data Table](https://i.imgur.com/yik7hdV.png)
+
 ### Defect History Analysis
 When the historical analysis is launched a third window is created and an analysis of a defect's history is generated. 
-Here is an example result:
 
+Here is an example result:
 ![JMP App History Analysis](https://i.imgur.com/5dxjMUw.png)
 
 
