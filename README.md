@@ -38,7 +38,7 @@ Here are some examples excel formulas that I used:
 ## Project 2
 Needless to say the process from project 1 was very tedious. My manager also asked me to create reports that could be refreshed daily. For my second, I setup the infrastructure for a data pipeline so I can get data that is consistently updated.
 
-### Developing SAS Code to Access Defects the SAS/SHARE Server
+### Developing SAS Code to Access Defects the SAS/SHARE Server 
 * Began learning and practicing SAS with Programming Essentials 1 and 2.
 * After some practice, I began working with the Defects SAS/SHARE server.
 * I developed a simple DATA step to aggregate defects data for my manager.
@@ -51,7 +51,7 @@ This is the main code I used to grab the initial data set from the SAS/SHARE ser
 This is a snippet of the code I ran next to grab supplementary data from related tables:
 ![SAS Merge Step](https://i.imgur.com/95CIy5d.png)
 
-After I ran both of these data steps I had ALL the information on every defect that was included in the "WHERE" statement. I ran this code with batch files periodically on a Windows Virtual Machine to grab new defect data and update defect links every 15 minutes and then stored it on my own SAS/SHARE server.  
+After I ran both of these data steps I had ALL the information on every defect that was included in the "WHERE" statement. I ran this code with batch files periodically on a Windows Virtual Machine to grab new defect data and update defect links every 15 minutes and then stored it on my own SAS/SHARE server. [Full SAS code found here](https://github.com/BenLu910/SAS-Projects/blob/master/DefectData.sas)
 ![Update Graphic](https://i.imgur.com/huoLhVm.png)
 
 I now had access to a data set with ~1.2 million defects that spanned the past 9 years. It had records of all the data I would possibly need, such as the defects update history and it's links to other defects. 
@@ -67,9 +67,11 @@ Finally, once I had a reliable data source I began to build an application that 
 * Embedded the prompt within the JMP App to fully combine the two.
 
 
-The JSL prompt used the user's input to generate a SQL query as a string. After the query was generated, it was used to query the data pipeline and using this data the application could be launched. 
-Here are a collection of screenshots showcasing the application:
+The JSL prompt used the user's input to generate a SQL query as a string. After the query was generated, it was used to query the data pipeline and using this data the application could be launched. [JSL Prompt code found here](https://github.com/BenLu910/SAS-Projects/blob/master/QueryPrompt.jsl)
 
+
+Here are a collection of screenshots showcasing the application:
+[Full application code found here](https://github.com/BenLu910/SAS-Projects/blob/master/JMPApplication.jsl)
 ## Application Window 1 - Graphs
 This application consisted of two windows. The first held all of the graphs for the data the query generated.
 ### Application Tab 1
@@ -88,7 +90,8 @@ The second window of the application shows the data table resulting from the que
 This is a standard data table, but has two special links in each row. One is used to open the defect's web page and the other opens an analysis of the defect's past.
 ![JMP App Data Table](https://i.imgur.com/yik7hdV.png)
 ### Defect History Analysis
-When the historical analysis is launched a third window is created and here is an example result:
+When the historical analysis is launched a third window is created and an analysis of a defect's history is generated. Here is an example result:
+
 ![JMP App History Analysis](https://i.imgur.com/5dxjMUw.png)
 
 
