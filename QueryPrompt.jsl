@@ -1,0 +1,208 @@
+//Embedded Query Prompt code begins
+//Variable initialization
+				primarylist = {"Reported by", "Support primary", "QA primary", "TS primary", "DT primary", "TW primary", "UI primary"};
+				contactslist = {"Interested party", "Support contact", "QA contact", "TS contact", "DT contact", "TW contact", "UI contact"};
+				//yearslist = { "1 year", "2 years", "3 years", "4 years", "5 years", "6 years", "7 years", "8 years", "9 years"};
+				yearslist = { "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+				selectedprimary = {};
+				selectedcontacts = {};
+				name = "";
+				currentquery = "";
+				exitprogram = 0;
+				//Function to set the behavior of the Select All checkboxes
+				f = Function( {this},
+					If( contactscb << get( 2 ) == 1, primarycb << Set( 2, 1 ), primarycb << Set( 2, 0 ));
+					If( contactscb << get( 3 ) == 1, primarycb << Set( 3, 1 ), primarycb << Set( 3, 0 ));
+					If( contactscb << get( 4 ) == 1, primarycb << Set( 4, 1 ), primarycb << Set( 4, 0 ));
+					If( contactscb << get( 5 ) == 1, primarycb << Set( 5, 1 ), primarycb << Set( 5, 0 ));
+					If( contactscb << get( 6 ) == 1, primarycb << Set( 6, 1 ), primarycb << Set( 6, 0 ));
+					If( contactscb << get( 7 ) == 1, primarycb << Set( 7, 1 ), primarycb << Set( 7, 0 ));
+				);
+				queryprompt = Function( {},
+					promptwindow = New Window( "Personal DEFECTS Report", <<modal(),
+						H List Box(
+						Spacer Box( size( 10, 1 ) ),
+						V List Box(
+						Spacer Box( size( 1, 10 ) ),
+						H List Box(
+							Text Box( "Enter the user name as specified in the DEFECTS system:" , <<Set Wrap(600), <<Set Font Size(10) ),
+							Text Box( "*" , <<Set Font Size(10), <<Font Color("Red")),
+						),
+						Spacer Box( size( 1, 3 ) ),
+						Text Box("Example: Pearce, H.", <<Set Font Size(8)),
+						Spacer Box( size( 1, 5 ) ),
+						namebox = Text Edit Box( "", <<Set Width( 210 )),
+						Spacer Box( size( 1, 6 ) ),
+						Text Box("Value is case-insensitive. Include the comma.", <<Set Font Size(8)),
+						Spacer Box( size( 1, 20 ) ),
+						H List Box(
+							Text Box( "Select the number of years of data to query:", <<Set Font Size(10) ),	
+							Text Box( "*" , <<Set Font Size(10), <<Font Color("Red")),
+						),
+						
+						Spacer Box( size( 1, 5 ) ),
+						H List Box(
+							yearslistbox = Combo Box( yearslist),
+							V Center Box(
+								Text Box( " previous years" , <<Set Font Size(10)),
+							),
+						),
+						Spacer Box( size( 1, 20 ) ),
+						H List Box(
+							Text Box( "Select the roles that you want to report on for the specified user.", <<Set Wrap(600), <<Set Font Size(10) ),
+							Text Box( "*" , <<Set Font Size(10), <<Font Color("Red")),
+						),
+						Spacer Box( size( 1, 3 ) ),
+						H List Box(
+							V List Box( 
+								Text Box("Primary contact roles only:", <<Set Font Size(10)),
+								Spacer Box( size( 1, 3 ) ),
+								selectall_cb1 = Check Box(
+									"Select all", <<SetFunction(
+										If( selectall_cb1 << get( 1 ) == 1,
+											primarycb << Set All( 1, run script( 1 ) ),
+											primarycb << Set All( 0, run script( 1 ) )
+										)
+									)
+								),
+								primarycb = Check Box( primarylist )
+							),
+							Spacer Box( size( 100, 1 ) ),
+							V List Box( 
+							Text Box(" All contact roles:", <<Set Font Size(10)),
+							Spacer Box( size( 1, 3 ) ),
+								selectall_cb2 = Check Box(
+									"Select all",
+									<<SetFunction(
+										If( selectall_cb2 << get( 1 ) == 1,
+											contactscb << Set All( 1, run script( 1 ) ),
+											contactscb << Set All( 0, run script( 1 ) )
+										)
+									)
+								),
+								contactscb = Check Box( contactslist, <<SetFunction( f ))
+							)
+						),
+						Spacer Box( size( 1, 25 ) ),
+						H List Box(
+							Spacer Box( size( 260, 1 ) ),
+							H List Box(
+								Spacer Box( size( 10, 1 ) ),
+								Button Box( "OK", 
+									stayinloop = 1;
+									exitprogram = 0;
+									name = namebox << get text;
+									If( name == "",
+										While( stayinloop,
+											If( name == "",
+												errwin = New Window( "Error",
+													<<modal,
+													Text Box(
+														"You must enter your name:",
+														<<Set Font Size(10)
+													),
+													Spacer Box( size( 1, 10 ) ),
+													H List Box(
+														teb = Text Edit Box( "",
+															set width( 200 ),
+															set wrap( 200 )
+														)
+													),
+													Spacer Box( size( 1, 10 ) ),
+													H List Box(
+														Spacer Box( size( 100, 1 ) ),
+														H List Box(
+															Button Box( "OK", 
+															name = teb << get text;
+															stayinloop = 0; 
+															),
+															cancel = Button Box( "Cancel", 
+																exitprogram = 1;
+																stayinloop = 0;
+															)
+														)
+													)
+												),
+											),
+										)
+									);
+									selectedprimary = primarycb << get selected;
+									selectedcontacts = contactscb << get selected;
+									choice = yearslistbox << getSelected;
+								),
+								Spacer Box( size( 5, 1 ) ),
+								Button Box( "Cancel", exitprogram = 1 ),
+								
+								)
+								)
+							),
+							Spacer Box( size( 1, 10 ) ),
+						)
+					);
+					//Query prompt UI ends
+					//Query string calculations begin
+					n1 = N Items( selectedprimary );
+					n2 = N Items( selectedcontacts );
+					If( n1 + n2 > 0 & exitprogram == 0, query = "SELECT * FROM Tempdata.UPDATEDDATA";
+						years = "";
+						years = choice;
+						queryname = "UPDATEDDATA" || years;
+						query = query || years || " t1 WHERE";
+						For( i = 1, i <= n1, i++,
+							If(selectedprimary[i] == "Reported by",
+									If( i > 1, query = query || " OR");
+									query = query || " (LOWER(t1.reptid) = LOWER('" || name || "'))";,
+								selectedprimary[i] == "Support primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "Support contact" ), 
+										query = query || " (LOWER(t1.suppids) LIKE  LOWER('%" || name ||"%'))",
+										query = query || " (LOWER(t1.supp_primary) = LOWER('" || name || "'))");,
+								selectedprimary[i] == "QA primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "QA contact" ),
+										query = query || " (LOWER(t1.qaids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.qa_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "TS primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "TS contact" ),
+										query = query || " (LOWER(t1.tsids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.ts_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "DT primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "DT contact" ),
+										query = query || " (LOWER(t1.dtids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.dt_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "TW primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "TW contact" ),
+										query = query || " (LOWER(t1.twids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.tw_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "UI primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "UI contact" ),
+										query = query || " (LOWER(t1.uiaids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.ui_primary) = LOWER('" || name || "'))"
+									);
+							)
+						);
+						If( n2 > 0 & selectedcontacts[1] == "Interested party",
+							If( n1 > 0, query = query || " OR");
+							query = query || " (LOWER(t1.foundids) LIKE  LOWER('%" || name || "%'))";
+						);
+						query = query || " ORDER BY t1.creation_date ASC;";
+						currentname = name;
+						currentquery = query;
+						Return( query );
+					,
+					exitprogram = 1;	
+					);
+					If( exitprogram == 1, Stop());
+				);
+				
+				//Query prompt code ends and returns query string. Now we can use the string to query the data on the workspace server.
+				New SQL Query(Version( 130 ), Connection("SAS:PHYSICAL:host=jmpdev2.na.sas.com;port=48591;username=sasdemo;password=SASpw1"), QueryName( "Report Data" ), CustomSQL( queryprompt() )) << Run;
+			)
