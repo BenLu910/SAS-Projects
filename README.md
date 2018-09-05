@@ -90,7 +90,8 @@ The second window of the application shows the data table resulting from the que
 This is a standard data table, but has two special links in each row. One is used to open the defect's web page and the other opens an analysis of the defect's past.
 ![JMP App Data Table](https://i.imgur.com/yik7hdV.png)
 ### Defect History Analysis
-When the historical analysis is launched a third window is created and an analysis of a defect's history is generated. Here is an example result:
+When the historical analysis is launched a third window is created and an analysis of a defect's history is generated. 
+Here is an example result:
 
 ![JMP App History Analysis](https://i.imgur.com/5dxjMUw.png)
 
