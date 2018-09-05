@@ -1,0 +1,66 @@
+//Add defect analysis link
+		reportdata:analysis << Set Property("Event Handler", Event Handler(Click(JSL Quote(Function( {thisTable, thisColumn, iRow}, 
+		try(close("Subset of Report Data", nosave));
+		try(close("Subset of Report Data 2", nosave));
+		defect = reportdata:defectid[iRow];
+		statusdt = thisTable << Subset(Rows(iRow), columns(:status_collection, :statustime_collection, :creator_collection, :dept_collection, :location_collection,));
+		linkdt = thisTable << Subset(Rows(iRow), columns(:linktype_collection, :link_collection, :linktime_collection));
+		
+		statusdt << Ungroup Columns();
+		statusdt << Set Label Columns( :creator_collection, :dept_collection);
+	
+		linkdt << Ungroup Columns();
+		linkdt << Set Label Columns( :linktype_collection );
+	
+		status_list = Words(statusdt:status_collection[1], ",");
+		status_len = length(status_list);
+	
+		statustime_list = Words(statusdt:statustime_collection[1], ",");
+		statustime_len = length(statustime_list);
+	
+		creator_list = Words(statusdt:creator_collection[1], ";");
+		creator_len = length(creator_list);
+	
+		dept_list = Words(statusdt:dept_collection[1], ",");
+		dept_len = length(dept_list);
+	
+		location_list = Words(statusdt:location_collection[1], ",");
+		location_len = length(location_list);
+	
+		linktype_list = Words(linkdt:linktype_collection[1], ",");
+		linktype_len = length(linktype_list);
+	
+		link_list = Words(linkdt:link_collection[1], ",");
+		link_len = length(link_list);
+	
+		linktime_list = Words(linkdt:linktime_collection[1], ",");
+		linktime_len = length(linktime_list);
+	
+		statusrows = 0;
+		statuslengths = Matrix( {status_len, statustime_len, creator_len, dept_len, location_len} );
+		For(i = 1, i <= 5, i++, if( statuslengths[i] > statusrows, statusrows = statuslengths[i] -1); );
+		statusdt << Add Rows(statusrows);
+			
+		linkrows = 0;
+		linklengths = Matrix( {linktype_len, link_len, linktime_len} );
+		For(i = 1, i <= 3, i++, if( linklengths[i] > linkrows, linkrows = linklengths[i] -1); );
+		linkdt << Add Rows(linkrows);	
+		
+		For(i = 1, i <= status_len, i++, 
+			if(i <= status_len, statusdt:status_collection[i] = status_list[i]);
+			if(i <= statustime_len, statusdt:statustime_collection[i] = statustime_list[i]);
+			if(i <= creator_len, statusdt:creator_collection[i] = creator_list[i]);
+			if(i <= dept_len, statusdt:dept_collection[i] = dept_list[i]);
+			if(i <= location_len, statusdt:location_collection[i] = location_list[i]);
+		);	
+		
+		For(i = 1, i <= link_len, i++, 
+			if(i <= linktype_len, linkdt:linktype_collection[i] = linktype_list[i]);
+			if(i <= link_len, linkdt:link_collection[i] = link_list[i]);
+			if(i <= linktime_len, linkdt:linktime_collection[i] = linktime_list[i]);
+		);
+		
+		statusdt:statustime_collection << Data type( Numeric, Format("ddMonyyyy h:m:s", 16), Input Format("ddMonyyyy h:m:s")) << Set Modeling Type( Continuous ) ;	
+		statusdt:statustime_collection << Set Display Width(145);
+		linkdt:linktime_collection << Data type( Numeric, Format("ddMonyyyy h:m:s", 16), Input Format("ddMonyyyy h:m:s")) << Set Modeling Type( Continuous ) ;
+		linkdt:linktime_collection << Set Display Width(145);
