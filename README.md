@@ -85,7 +85,7 @@ This tab explores the effect of priority on the completion time of a defect.
 ![JMP App Tab 2](https://i.imgur.com/TAxJq9G.png)
 ### Application Tab 3
 
-This tab explored the completion time of defects based on different product components.
+This tab explores the completion time of defects based on different product components.
 ![JMP App Tab 3](https://i.imgur.com/4rITTYN.png)
 
 ## Application Window 2 - Data
@@ -98,7 +98,7 @@ This is a standard data table, but has two special links in each row. One is use
 ### Defect History Analysis
 When the historical analysis is launched a third window is created and an analysis of a defect's history is generated. 
 
-Here is an example result:
+Here is an example result: [Analysis code found here](https://github.com/BenLu910/SAS-Projects/blob/master/HistoryAnalysis.jsl)
 ![JMP App History Analysis](https://i.imgur.com/5dxjMUw.png)
 
 
