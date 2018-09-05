@@ -9,6 +9,7 @@ Table of Contents
        * [Project 1: Excel and Viya](#project-1)
        * [Project 2: Data Pipelines using SAS](#project-2)
        * [Project 3: Employee dashboards using JMP](#project-3)
+       * [Final Product](#final-product)
 
 ## Problem Description
 
@@ -36,7 +37,7 @@ Here are some examples excel formulas that I used:
 ![SAS Viya](https://i.imgur.com/B1dMRKv.png)
 
 ## Project 2
-Needless to say the process from project 1 was very tedious. My manager also asked me to create reports that could be refreshed daily. For my second, I setup the infrastructure for a data pipeline so I can get data that is consistently updated.
+Needless to say the process from project 1 was very tedious and not reproducible. My manager asked me to create reports that could be refreshed daily. For my second project, I setup the infrastructure for a data pipeline so I could utilize data that is consistently updated.
 
 ### Developing SAS Code to Access Defects the SAS/SHARE Server 
 * Began learning and practicing SAS with Programming Essentials 1 and 2.
@@ -101,6 +102,7 @@ When the historical analysis is launched a third window is created and an analys
 Here is an example result: [Analysis code found here](https://github.com/BenLu910/SAS-Projects/blob/master/HistoryAnalysis.jsl)
 ![JMP App History Analysis](https://i.imgur.com/5dxjMUw.png)
 
-
+## Final Product
+Once my application was completed it was adopted by multiple testing teams and is continuing to see more use even after my internship completed. My team in particular is using it to find which products are the most problematic and focus their attention on those teams. My application brings a new view for testers AND developers to gain new insights on their defects at a level which was not available before. This will save employees time and resources in future projects.
 
 
