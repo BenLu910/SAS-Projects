@@ -1,0 +1,2509 @@
+JMP App(
+	Set Name( "Defects Dashboard" ),
+	Set Description( "" ),
+	Auto Launch( 1 ),
+	Snap To Grid( 1 ),
+	Show Grid( 1 ),
+	Show Properties( 1 ),
+	Show Sources( 1 ),
+	Group By Category( 1 ),
+	Dashboard Mode( 0 ),
+	Parameters,
+	Tables(
+		reportdata = GuiTable(
+			Set Path( "" ),
+			Set Label( "Report Data" ),
+			Set Location( "Embedded Script" ),
+			Set Invisible( 1 ),
+			Set Script(
+				//Embedded Query Prompt code begins
+				//Variable initialization
+				primarylist = {"Reported by", "Support primary", "QA primary", "TS primary", "DT primary", "TW primary", "UI primary"};
+				contactslist = {"Interested party", "Support contact", "QA contact", "TS contact", "DT contact", "TW contact", "UI contact"};
+				//yearslist = { "1 year", "2 years", "3 years", "4 years", "5 years", "6 years", "7 years", "8 years", "9 years"};
+				yearslist = { "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+				selectedprimary = {};
+				selectedcontacts = {};
+				name = "";
+				currentquery = "";
+				exitprogram = 0;
+				//Function to set the behavior of the Select All checkboxes
+				f = Function( {this},
+					If( contactscb << get( 2 ) == 1, primarycb << Set( 2, 1 ), primarycb << Set( 2, 0 ));
+					If( contactscb << get( 3 ) == 1, primarycb << Set( 3, 1 ), primarycb << Set( 3, 0 ));
+					If( contactscb << get( 4 ) == 1, primarycb << Set( 4, 1 ), primarycb << Set( 4, 0 ));
+					If( contactscb << get( 5 ) == 1, primarycb << Set( 5, 1 ), primarycb << Set( 5, 0 ));
+					If( contactscb << get( 6 ) == 1, primarycb << Set( 6, 1 ), primarycb << Set( 6, 0 ));
+					If( contactscb << get( 7 ) == 1, primarycb << Set( 7, 1 ), primarycb << Set( 7, 0 ));
+				);
+				queryprompt = Function( {},
+					promptwindow = New Window( "Personal DEFECTS Report", <<modal(),
+						H List Box(
+						Spacer Box( size( 10, 1 ) ),
+						V List Box(
+						Spacer Box( size( 1, 10 ) ),
+						H List Box(
+							Text Box( "Enter the user name as specified in the DEFECTS system:" , <<Set Wrap(600), <<Set Font Size(10) ),
+							Text Box( "*" , <<Set Font Size(10), <<Font Color("Red")),
+						),
+						Spacer Box( size( 1, 3 ) ),
+						Text Box("Example: Pearce, H.", <<Set Font Size(8)),
+						Spacer Box( size( 1, 5 ) ),
+						namebox = Text Edit Box( "", <<Set Width( 210 )),
+						Spacer Box( size( 1, 6 ) ),
+						Text Box("Value is case-insensitive. Include the comma.", <<Set Font Size(8)),
+						Spacer Box( size( 1, 20 ) ),
+						H List Box(
+							Text Box( "Select the number of years of data to query:", <<Set Font Size(10) ),	
+							Text Box( "*" , <<Set Font Size(10), <<Font Color("Red")),
+						),
+						
+						Spacer Box( size( 1, 5 ) ),
+						H List Box(
+							yearslistbox = Combo Box( yearslist),
+							V Center Box(
+								Text Box( " previous years" , <<Set Font Size(10)),
+							),
+						),
+						Spacer Box( size( 1, 20 ) ),
+						H List Box(
+							Text Box( "Select the roles that you want to report on for the specified user.", <<Set Wrap(600), <<Set Font Size(10) ),
+							Text Box( "*" , <<Set Font Size(10), <<Font Color("Red")),
+						),
+						Spacer Box( size( 1, 3 ) ),
+						H List Box(
+							V List Box( 
+								Text Box("Primary contact roles only:", <<Set Font Size(10)),
+								Spacer Box( size( 1, 3 ) ),
+								selectall_cb1 = Check Box(
+									"Select all", <<SetFunction(
+										If( selectall_cb1 << get( 1 ) == 1,
+											primarycb << Set All( 1, run script( 1 ) ),
+											primarycb << Set All( 0, run script( 1 ) )
+										)
+									)
+								),
+								primarycb = Check Box( primarylist )
+							),
+							Spacer Box( size( 100, 1 ) ),
+							V List Box( 
+							Text Box(" All contact roles:", <<Set Font Size(10)),
+							Spacer Box( size( 1, 3 ) ),
+								selectall_cb2 = Check Box(
+									"Select all",
+									<<SetFunction(
+										If( selectall_cb2 << get( 1 ) == 1,
+											contactscb << Set All( 1, run script( 1 ) ),
+											contactscb << Set All( 0, run script( 1 ) )
+										)
+									)
+								),
+								contactscb = Check Box( contactslist, <<SetFunction( f ))
+							)
+						),
+						Spacer Box( size( 1, 25 ) ),
+						H List Box(
+							Spacer Box( size( 260, 1 ) ),
+							H List Box(
+								Spacer Box( size( 10, 1 ) ),
+								Button Box( "OK", 
+									stayinloop = 1;
+									exitprogram = 0;
+									name = namebox << get text;
+									If( name == "",
+										While( stayinloop,
+											If( name == "",
+												errwin = New Window( "Error",
+													<<modal,
+													Text Box(
+														"You must enter your name:",
+														<<Set Font Size(10)
+													),
+													Spacer Box( size( 1, 10 ) ),
+													H List Box(
+														teb = Text Edit Box( "",
+															set width( 200 ),
+															set wrap( 200 )
+														)
+													),
+													Spacer Box( size( 1, 10 ) ),
+													H List Box(
+														Spacer Box( size( 100, 1 ) ),
+														H List Box(
+															Button Box( "OK", 
+															name = teb << get text;
+															stayinloop = 0; 
+															),
+															cancel = Button Box( "Cancel", 
+																exitprogram = 1;
+																stayinloop = 0;
+															)
+														)
+													)
+												),
+											),
+										)
+									);
+									selectedprimary = primarycb << get selected;
+									selectedcontacts = contactscb << get selected;
+									choice = yearslistbox << getSelected;
+								),
+								Spacer Box( size( 5, 1 ) ),
+								Button Box( "Cancel", exitprogram = 1 ),
+								
+								)
+								)
+							),
+							Spacer Box( size( 1, 10 ) ),
+						)
+					);
+					//Query prompt UI ends
+					//Query string calculations begin
+					n1 = N Items( selectedprimary );
+					n2 = N Items( selectedcontacts );
+					If( n1 + n2 > 0 & exitprogram == 0, query = "SELECT * FROM Tempdata.UPDATEDDATA";
+						years = "";
+						years = choice;
+						queryname = "UPDATEDDATA" || years;
+						query = query || years || " t1 WHERE";
+						For( i = 1, i <= n1, i++,
+							If(selectedprimary[i] == "Reported by",
+									If( i > 1, query = query || " OR");
+									query = query || " (LOWER(t1.reptid) = LOWER('" || name || "'))";,
+								selectedprimary[i] == "Support primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "Support contact" ), 
+										query = query || " (LOWER(t1.suppids) LIKE  LOWER('%" || name ||"%'))",
+										query = query || " (LOWER(t1.supp_primary) = LOWER('" || name || "'))");,
+								selectedprimary[i] == "QA primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "QA contact" ),
+										query = query || " (LOWER(t1.qaids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.qa_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "TS primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "TS contact" ),
+										query = query || " (LOWER(t1.tsids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.ts_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "DT primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "DT contact" ),
+										query = query || " (LOWER(t1.dtids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.dt_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "TW primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "TW contact" ),
+										query = query || " (LOWER(t1.twids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.tw_primary) = LOWER('" || name || "'))"
+									);,
+								selectedprimary[i] == "UI primary",
+									If( i > 1, query = query || " OR");
+									If( Contains( selectedcontacts, "UI contact" ),
+										query = query || " (LOWER(t1.uiaids) LIKE  LOWER('%" || name || "%'))",
+										query = query || " (LOWER(t1.ui_primary) = LOWER('" || name || "'))"
+									);
+							)
+						);
+						If( n2 > 0 & selectedcontacts[1] == "Interested party",
+							If( n1 > 0, query = query || " OR");
+							query = query || " (LOWER(t1.foundids) LIKE  LOWER('%" || name || "%'))";
+						);
+						query = query || " ORDER BY t1.creation_date ASC;";
+						currentname = name;
+						currentquery = query;
+						Return( query );
+					,
+					exitprogram = 1;	
+					);
+					If( exitprogram == 1, Stop());
+				);
+				
+				//Query prompt code ends and returns query string. Now we can use the string to query the data on the workspace server.
+				New SQL Query(Version( 130 ), Connection("SAS:PHYSICAL:host=jmpdev2.na.sas.com;port=48591;username=sasdemo;password=SASpw1"), QueryName( "Report Data" ), CustomSQL( queryprompt() )) << Run;
+			)
+		),
+	),
+	Script(JSL Quote(// This script is executed when the application is run.
+		SAS Disconnect();
+		//Add properties to the reportdata table
+		reportdata << Set Label Columns( :defectid );
+		reportdata:defectid << Set Property("Event Handler", Event Handler(Click(JSL Quote(Function( {thisTable, thisColumn, iRow}, 
+			Web( "http://sww.sas.com/defects/java/iDefects/WebClient.html?filename=defdatas_update&filetype=hsql&defectid=" || Char(thisTable:thisColumn[ iRow ] ) ); );))));
+		ExprList = {"L" = Level Color( 3, "Universal" ), "M" = Level Color( 7, "Universal" ), "H" =
+		Level Color( 1, "Universal" ), "A" = Level Color( 1, "Strong" )};
+		reportdata:priority << Set property( "Value Colors", ExprList );
+		reportdata:priority << Set Property( "Value Ordering", {"L", "M", "H", "A"} );
+		reportdata:priority << Set Property("Value Labels", {"A" = "Alert", "H" = "High", "L" = "Low", "M" = "Medium"});
+		reportdata:pub_issue << Set Property("Value Labels", {"D" = "Deferred", "F" = "Fixed", "N" = "No", "R" = "Review", "U" = "Unsure", "V" = "Verified", "N" = "No Fix", "Y" = "Yes"});
+		reportdata:ui_affected << Set Property("Value Labels", {"C" = "Completed", "I" = "UI Inconsistency", "N" = "UI Not Affected", "P" = "In Progress", "R" = "Reviewing", "U" = "Unknown UI Effect", "Y" = "UI Affected"});
+		reportdata << Group Columns("Counts", {:num_defer, :num_dupto, :num_dupfrom, :num_blocking, :num_blockedby, :num_relations, :num_links, :status_changes, :location_changes, :num_tsnumber});
+		reportdata << Group Columns("IDs", {:reptid, :supp_primary, :qa_primary, :ts_primary, :dt_primary, tw_primary, ui_primary, suppids, qaids, tsids, twids, uiaids, dtids, foundids});
+		reportdata << Group Columns("Collections", {:status_collection, :statustime_collection, :creator_collection, :dept_collection, :location_collection, :linktype_collection, :link_collection, :linktime_collection});
+		reportdata << Select Column Group( {"Collections"} );
+		
+		reportdata << Move Selected Columns( to last );
+		reportdata << Clear Column Selection;
+		reportdata << Select Column Group( {"IDs"} );
+		reportdata << Move Selected Columns( to last );
+		reportdata << Clear Column Selection;
+		reportdata:lasthistory_time << Set Selected( 1 );
+		reportdata << Move Selected Columns( after( :lasthistory_date ) );
+		reportdata << Clear Column Selection;
+		reportdata << New Column( "analysis", character, nominal, <<set each value( "Launch" ) );
+		reportdata << Select Columns( :analysis );
+		reportdata << Move Selected Columns( To first );
+		reportdata << Clear Column Selection();
+		//Add defect analysis link
+		reportdata:analysis << Set Property("Event Handler", Event Handler(Click(JSL Quote(Function( {thisTable, thisColumn, iRow}, 
+		try(close("Subset of Report Data", nosave));
+		try(close("Subset of Report Data 2", nosave));
+		defect = reportdata:defectid[iRow];
+		statusdt = thisTable << Subset(Rows(iRow), columns(:status_collection, :statustime_collection, :creator_collection, :dept_collection, :location_collection,));
+		linkdt = thisTable << Subset(Rows(iRow), columns(:linktype_collection, :link_collection, :linktime_collection));
+		
+		statusdt << Ungroup Columns();
+		statusdt << Set Label Columns( :creator_collection, :dept_collection);
+	
+		linkdt << Ungroup Columns();
+		linkdt << Set Label Columns( :linktype_collection );
+	
+		status_list = Words(statusdt:status_collection[1], ",");
+		status_len = length(status_list);
+	
+		statustime_list = Words(statusdt:statustime_collection[1], ",");
+		statustime_len = length(statustime_list);
+	
+		creator_list = Words(statusdt:creator_collection[1], ";");
+		creator_len = length(creator_list);
+	
+		dept_list = Words(statusdt:dept_collection[1], ",");
+		dept_len = length(dept_list);
+	
+		location_list = Words(statusdt:location_collection[1], ",");
+		location_len = length(location_list);
+	
+		linktype_list = Words(linkdt:linktype_collection[1], ",");
+		linktype_len = length(linktype_list);
+	
+		link_list = Words(linkdt:link_collection[1], ",");
+		link_len = length(link_list);
+	
+		linktime_list = Words(linkdt:linktime_collection[1], ",");
+		linktime_len = length(linktime_list);
+	
+		statusrows = 0;
+		statuslengths = Matrix( {status_len, statustime_len, creator_len, dept_len, location_len} );
+		For(i = 1, i <= 5, i++, if( statuslengths[i] > statusrows, statusrows = statuslengths[i] -1); );
+		statusdt << Add Rows(statusrows);
+			
+		linkrows = 0;
+		linklengths = Matrix( {linktype_len, link_len, linktime_len} );
+		For(i = 1, i <= 3, i++, if( linklengths[i] > linkrows, linkrows = linklengths[i] -1); );
+		linkdt << Add Rows(linkrows);	
+		
+		For(i = 1, i <= status_len, i++, 
+			if(i <= status_len, statusdt:status_collection[i] = status_list[i]);
+			if(i <= statustime_len, statusdt:statustime_collection[i] = statustime_list[i]);
+			if(i <= creator_len, statusdt:creator_collection[i] = creator_list[i]);
+			if(i <= dept_len, statusdt:dept_collection[i] = dept_list[i]);
+			if(i <= location_len, statusdt:location_collection[i] = location_list[i]);
+		);	
+		
+		For(i = 1, i <= link_len, i++, 
+			if(i <= linktype_len, linkdt:linktype_collection[i] = linktype_list[i]);
+			if(i <= link_len, linkdt:link_collection[i] = link_list[i]);
+			if(i <= linktime_len, linkdt:linktime_collection[i] = linktime_list[i]);
+		);
+		
+		statusdt:statustime_collection << Data type( Numeric, Format("ddMonyyyy h:m:s", 16), Input Format("ddMonyyyy h:m:s")) << Set Modeling Type( Continuous ) ;	
+		statusdt:statustime_collection << Set Display Width(145);
+		linkdt:linktime_collection << Data type( Numeric, Format("ddMonyyyy h:m:s", 16), Input Format("ddMonyyyy h:m:s")) << Set Modeling Type( Continuous ) ;
+		linkdt:linktime_collection << Set Display Width(145);
+		
+		JMP App(Set Name( "Defect Analysis" ), Set Description( "Description" ), Auto Launch( 1 ), Snap To Grid( 1 ), Show Grid( 1 ), Show Properties( 1 ), Show Sources( 1 ), Group By Category( 1 ), Dashboard Mode( 0 ), Parameters,
+		Tables(
+			statusdata = GuiTable(
+				Set Path( "" ),
+				Set Label( "Status History Data Table" ),
+				Set Location( "Embedded Script" ),
+				Set Invisible( 1 ),
+				Set Script( statusdata = statusdt )
+			),
+			linkdata = GuiTable(
+				Set Path( "" ),
+				Set Label( "Link History Data Table" ),
+				Set Location( "Embedded Script" ),
+				Set Invisible( 1 ),
+				Set Script( linkdata = linkdt )
+			)
+		),
+		Script(JSL Quote(// This script is executed when the application is run.	
+		
+		)	),
+		Allocate(
+			Module1 = Plan(
+				PreAllocate,
+				Script(JSL Quote(// This script is executed when a new module instance is created.  
+					OnModuleLoad({},);
+					thisModuleInstance << Create Objects;
+					MainTab << Set Scriptable Object(thisApplication);
+					(thisModuleInstance<<GetBox) << Maximize Window;
+					(thisModuleInstance<<GetBox) << On Close(
+						close(statusdata, nosave);
+						close(linkdata, nosave);
+					);
+				)			),
+				Allocate(
+					MainTab = Tab Page Box();
+					TabList = Tab Box();
+					StatusTabPage = Tab Page Box();
+					StatusDataFilterContext = Data Filter Context Box();
+					Splitter6 = V Splitter Box();
+					StatusTabList1 = H List Box();
+					StatusLocalDataFilter = linkdata <<
+					Data Filter( Close Outline( 1 ), Local );
+					StatusDataTableBox = statusdata << New Data Box();
+					Splitter8 = V Splitter Box();
+					DataFilterSource9 = Data Filter Source Box();
+					Splitter7 = V Splitter Box();
+					StatusPieTabPage = Tab Page Box();
+					StatusPie = Platform(
+						statusdata,
+						Graph Builder(
+							Size( 286, 342 ),
+							Show Control Panel( 0 ),
+							Categorical Color Theme( "Universal" ),
+							Fit to Window( "On" ),
+							Variables( X( :status_collection ) ),
+							Elements( Pie( X, Legend( 2 ), Label( "Label by Value" ) ) ),
+							SendToReport(
+								Dispatch( {}, "Graph Builder",
+								OutlineBox, {Set Title( "" )}
+								),
+								Dispatch(
+									{},
+									"graph title",
+									TextEditBox,
+									{Set Text( "" )}
+								),
+								Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+								Dispatch(
+									{},
+									"400",
+									LegendBox,
+									{Set Title( "Status" )}
+								)
+							)
+						)
+					);
+					DataFilterSource8 = Data Filter Source Box();
+					LocationPieTabPage = Tab Page Box();
+					LocationPie = Platform(
+						statusdata,
+						Graph Builder(
+							Size( 227, 322 ),
+							Show Control Panel( 0 ),
+							Categorical Color Theme( "Universal" ),
+							Fit to Window( "On" ),
+							Variables( X( :location_collection ) ),
+							Elements( Pie( X, Legend( 2 ), Label( "Label by Value" ) ) ),
+							SendToReport(
+								Dispatch( {}, "Graph Builder",
+								OutlineBox, {Set Title( "" )}
+								),
+								Dispatch(
+									{},
+									"graph title",
+									TextEditBox,
+									{Set Text( "" )}
+								),
+								Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+								Dispatch(
+									{},
+									"400",
+									LegendBox,
+									{Set Title( "Location" )}
+								)
+							)
+						)
+					);
+					StatusDotTabPage = Tab Page Box();
+					StatusDot = Platform(
+						statusdata,
+						Graph Builder(
+							Size( 777, 382 ),
+							Show Control Panel( 0 ),
+							Categorical Color Theme( "Universal" ),
+							Fit to Window( "On" ),
+							Variables(
+								X( :statustime_collection ),
+								Group Y(
+									:location_collection,
+									Order By(
+										:dept_collection,
+										Ascending,
+										Order Statistic( "Mean" )
+									),
+									Show Title( 0 )
+								),
+								Overlay( :status_collection ),
+								Color( :status_collection )
+							),
+							Elements( Points( X, Legend( 73 ) ) ),
+							SendToReport(
+								Dispatch( {}, "Graph Builder",
+								OutlineBox, {Set Title( "" )}
+								),
+								Dispatch(
+									{},
+									"statustime_collection",
+									ScaleBox,
+									{Label Row( Label Orientation( "Horizontal" ) )}
+								),
+								Dispatch(
+									{},
+									"400",
+									ScaleBox,
+									{Legend Model(
+										73,
+										Properties(
+											0,
+											{Marker( "Dot" )},
+											Item ID( "Open", 1 )
+										),
+										Properties(
+											1,
+											{Marker( "Dot" )},
+											Item ID( "Request(s)", 1 )
+										),
+										Properties(
+											2,
+											{Marker( "Dot" )},
+											Item ID( "Fixed", 1 )
+										),
+										Properties(
+											3,
+											{Marker( "Dot" )},
+											Item ID( "Review", 1 )
+										),
+										Properties(
+											4,
+											{Marker( "Dot" )},
+											Item ID( "Blocked", 1 )
+										),
+										Properties(
+											5,
+											{Marker( "Dot" )},
+											Item ID( "Converted", 1 )
+										),
+										Properties(
+											6,
+											{Marker( "Dot" )},
+											Item ID( "Defer", 1 )
+										),
+										Properties(
+											7,
+											{Marker( "Dot" )},
+											Item ID( "Disable", 1 )
+										),
+										Properties(
+											8,
+											{Marker( "Dot" )},
+											Item ID( "Dup", 1 )
+										),
+										Properties(
+											9,
+											{Marker( "Dot" )},
+											Item ID( "Evaluating", 1 )
+										),
+										Properties(
+											10,
+											{Marker( "Dot" )},
+											Item ID( "Hfreview", 1 )
+										),
+										Properties(
+											11,
+											{Marker( "Dot" )},
+											Item ID( "Inprocess", 1 )
+										),
+										Properties(
+											12,
+											{Marker( "Dot" )},
+											Item ID( "Nobug", 1 )
+										),
+										Properties(
+											13,
+											{Marker( "Dot" )},
+											Item ID( "Nofix", 1 )
+										),
+										Properties(
+											14,
+											{Marker( "Dot" )},
+											Item ID( "Norep", 1 )
+										),
+										Properties(
+											15,
+											{Marker( "Dot" )},
+											Item ID( "Request(g)", 1 )
+										),
+										Properties(
+											16,
+											{Marker( "Dot" )},
+											Item ID( "Request(r)", 1 )
+										),
+										Properties(
+											17,
+											{Marker( "Dot" )},
+											Item ID( "Scoped", 1 )
+										),
+										Properties(
+											18,
+											{Marker( "Dot" )},
+											Item ID( "Approve(s)", 1 )
+										),
+										Properties(
+											19,
+											{Marker( "Dot" )},
+											Item ID( "Delete", 1 )
+										)
+									)}
+								),
+								Dispatch(
+									{},
+									"graph title",
+									TextEditBox,
+									{Set Text( "" )}
+								),
+								Dispatch(
+									{},
+									"X title",
+									TextEditBox,
+									{Set Text( "Status Change Datetime" )}
+								),
+								Dispatch(
+									{},
+									"400",
+									LegendBox,
+									{Set Title( "Status" )}
+								)
+							)
+						)
+					);
+					LinkTabPage = Tab Page Box();
+					LinkDataFilterContext = Data Filter Context Box();
+					Splitter3 = V Splitter Box();
+					List2 = H List Box();
+					LinkLocalDataFilter = linkdata <<
+					Data Filter( Close Outline( 1 ), Local );
+					LinkDataTableBox = linkdata << New Data Box();
+					Splitter5 = V Splitter Box();
+					LinkDataFilterSource = Data Filter Source Box();
+					LinkTreemapTabPage = Tab Page Box();
+					LinkTreemap = Platform(
+						linkdata,
+						Graph Builder(
+							Size( 765, 361 ),
+							Show Control Panel( 0 ),
+							Categorical Color Theme( "Universal" ),
+							Fit to Window( "On" ),
+							Variables( X( :linktype_collection ) ),
+							Elements(
+								Treemap( X, Legend( 3 ) ),
+								Caption Box( X, Legend( 5 ) )
+							),
+							SendToReport(
+								Dispatch( {}, "Graph Builder",
+								OutlineBox, {Set Title( "" )}
+								),
+								Dispatch(
+									{},
+									"graph title",
+									TextEditBox,
+									{Set Text( "" )}
+								),
+								Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+								Dispatch(
+									{},
+									"400",
+									LegendBox,
+									{Set Title( "Link Type" ),
+									Legend Position( {3, [0]} ), Position( {0} )}
+								)
+							)
+						)
+					);
+					LinkTabPage3 = Tab Page Box();
+					LinkDotTabPage = Platform(
+						linkdata,
+						Graph Builder(
+							Size( 819, 383 ),
+							Show Control Panel( 0 ),
+							Categorical Color Theme( "Universal" ),
+							Fit to Window( "On" ),
+							Variables(
+								X( :linktime_collection ),
+								Y( :linktype_collection ),
+								Color( :linktype_collection )
+							),
+							Elements( Points( X, Y, Legend( 12 ) ) ),
+							SendToReport(
+								Dispatch( {}, "Graph Builder",
+								OutlineBox, {Set Title( "" )}
+								),
+								Dispatch(
+									{},
+									"linktime_collection",
+									ScaleBox,
+									{Label Row( Label Orientation( "Horizontal" ) )}
+								),
+								Dispatch(
+									{},
+									"graph title",
+									TextEditBox,
+									{Set Text( "" )}
+								),
+								Dispatch(
+									{},
+									"X title",
+									TextEditBox,
+									{Set Text( "Link Creation Datetime" )}
+								),
+								Dispatch(
+									{},
+									"Y title",
+									TextEditBox,
+									{Set Text( "Link Type" )}
+								),
+								Dispatch(
+									{},
+									"400",
+									LegendBox,
+									{Set Title( "Link Type" )}
+								)
+							)
+						)
+					);
+				),
+				Organize(
+					Reparent( LinkTabPage3( LinkDotTabPage ) );
+					Reparent( Splitter5( LinkTabPage3 ) );
+					Reparent( LinkTreemapTabPage( LinkTreemap ) );
+					Reparent( LinkDataFilterSource( LinkTreemapTabPage ) );
+					Reparent( Splitter5( LinkDataFilterSource ) );
+					Reparent( Splitter3( Splitter5 ) );
+					Reparent( List2( LinkDataTableBox ) );
+					Reparent( List2( LinkLocalDataFilter ) );
+					Reparent( Splitter3( List2 ) );
+					Reparent( LinkDataFilterContext( Splitter3 ) );
+					Reparent( LinkTabPage( LinkDataFilterContext ) );
+					Reparent( TabList( LinkTabPage ) );
+					Reparent( StatusDotTabPage( StatusDot ) );
+					Reparent( Splitter8( StatusDotTabPage ) );
+					Reparent( LocationPieTabPage( LocationPie ) );
+					Reparent( DataFilterSource8( LocationPieTabPage ) );
+					Reparent( Splitter7( DataFilterSource8 ) );
+					Reparent( StatusPieTabPage( StatusPie ) );
+					Reparent( Splitter7( StatusPieTabPage ) );
+					Reparent( DataFilterSource9( Splitter7 ) );
+					Reparent( Splitter8( DataFilterSource9 ) );
+					Reparent( Splitter6( Splitter8 ) );
+					Reparent( StatusTabList1( StatusDataTableBox ) );
+					Reparent( StatusTabList1( StatusLocalDataFilter ) );
+					Reparent( Splitter6( StatusTabList1 ) );
+					Reparent( StatusDataFilterContext( Splitter6 ) );
+					Reparent( StatusTabPage( StatusDataFilterContext ) );
+					Reparent( TabList( StatusTabPage ) );
+					Reparent( MainTab( TabList ) );
+					Relocate( MainTab( 0, 0 ) );
+				),
+				Initialize(
+					MainTab << Background Color( 2147483647 );
+					MainTab << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					MainTab << Enabled( 1 );
+					MainTab << Horizontal Alignment( "Default" );
+					MainTab << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					MainTab << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					MainTab << Text Color( 2147483647 );
+					MainTab << Vertical Alignment( "Default" );
+					MainTab << Visibility( "Visible" );
+					MainTab << Title( "Defect Breakdown for " || defect );
+					MainTab << Tip( "" );
+					MainTab << Icon( "" );
+					MainTab << Closeable( 0 );
+					MainTab << Moveable( 0 );
+					TabList << Background Color( 2147483647 );
+					TabList << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					TabList << Enabled( 1 );
+					TabList << Horizontal Alignment( "Default" );
+					TabList << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					TabList << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					TabList << Text Color( 2147483647 );
+					TabList << Vertical Alignment( "Default" );
+					TabList << Visibility( "Visible" );
+					TabList << Dockable( 0 );
+					TabList << Set Selected( 1 );
+					TabList << Set Style( "Tab" );
+					TabList << Set Overflow Enabled( 0 );
+					TabList << Set Tab Close( Empty() );
+					TabList << Set Tab Close Tip( "" );
+					TabList << Set Tab New( Empty() );
+					TabList << Set Tab New Tip( "" );
+					TabList << Set Tab New Icon( "" );
+					TabList << Show Tabs( 1 );
+					TabList << Set Tab Changed( Empty() );
+					StatusTabPage << Background Color( 2147483647 );
+					StatusTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusTabPage << Enabled( 1 );
+					StatusTabPage << Horizontal Alignment( "Default" );
+					StatusTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusTabPage << Text Color( 2147483647 );
+					StatusTabPage << Vertical Alignment( "Default" );
+					StatusTabPage << Visibility( "Visible" );
+					StatusTabPage << Title( "Status Breakdown" );
+					StatusTabPage << Tip( "" );
+					StatusTabPage << Icon( "" );
+					StatusTabPage << Closeable( 0 );
+					StatusTabPage << Moveable( 0 );
+					StatusDataFilterContext << Background Color( 2147483647 );
+					StatusDataFilterContext << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDataFilterContext << Enabled( 1 );
+					StatusDataFilterContext << Horizontal Alignment( "Default" );
+					StatusDataFilterContext << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDataFilterContext << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDataFilterContext << Text Color( 2147483647 );
+					StatusDataFilterContext << Vertical Alignment( "Default" );
+					StatusDataFilterContext << Visibility( "Visible" );
+					Splitter6 << Background Color( 2147483647 );
+					Splitter6 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter6 << Enabled( 1 );
+					Splitter6 << Horizontal Alignment( "Default" );
+					Splitter6 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter6 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter6 << Text Color( 2147483647 );
+					Splitter6 << Vertical Alignment( "Default" );
+					Splitter6 << Visibility( "Visible" );
+					Splitter6 << Dockable( 0 );
+					Splitter6 << Set Width( 1914 );
+					Splitter6 << Set Height( 923 );
+					Splitter6 << Set Sizes( {0.488749345892203, 0.511250654107797} );
+					Splitter6 << set horizontal( 1 );
+					Splitter6 << Set Min Size( 786, 507 );
+					Splitter6 << Set Max Size( 70962, 60123 );
+					Splitter6 << Set Auto Stretching( 1, 1 );
+					StatusTabList1 << Background Color( 2147483647 );
+					StatusTabList1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusTabList1 << Enabled( 1 );
+					StatusTabList1 << Horizontal Alignment( "Default" );
+					StatusTabList1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusTabList1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusTabList1 << Text Color( 2147483647 );
+					StatusTabList1 << Vertical Alignment( "Default" );
+					StatusTabList1 << Visibility( "Visible" );
+					StatusTabList1 << set horizontal( 1 );
+					StatusLocalDataFilter << Background Color( 2147483647 );
+					StatusLocalDataFilter << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusLocalDataFilter << Enabled( 1 );
+					StatusLocalDataFilter << Horizontal Alignment( "Default" );
+					StatusLocalDataFilter << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusLocalDataFilter << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusLocalDataFilter << Text Color( 2147483647 );
+					StatusLocalDataFilter << Vertical Alignment( "Default" );
+					StatusLocalDataFilter << Visibility( "Visible" );
+					StatusDataTableBox << Background Color( 2147483647 );
+					StatusDataTableBox << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDataTableBox << Enabled( 1 );
+					StatusDataTableBox << Horizontal Alignment( "Default" );
+					StatusDataTableBox << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDataTableBox << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDataTableBox << Text Color( 2147483647 );
+					StatusDataTableBox << Vertical Alignment( "Default" );
+					StatusDataTableBox << Visibility( "Visible" );
+					Splitter8 << Background Color( 2147483647 );
+					Splitter8 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter8 << Enabled( 1 );
+					Splitter8 << Horizontal Alignment( "Default" );
+					Splitter8 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter8 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter8 << Text Color( 2147483647 );
+					Splitter8 << Vertical Alignment( "Default" );
+					Splitter8 << Visibility( "Visible" );
+					Splitter8 << Dockable( 0 );
+					Splitter8 << Set Width( 958 );
+					Splitter8 << Set Height( 903 );
+					Splitter8 << Set Sizes( {0.5, 0.5} );
+					Splitter8 << set horizontal( 0 );
+					Splitter8 << Set Min Size( 590, 487 );
+					Splitter8 << Set Max Size( 60103, 60103 );
+					Splitter8 << Set Auto Stretching( 1, 1 );
+					DataFilterSource9 << Background Color( 2147483647 );
+					DataFilterSource9 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					DataFilterSource9 << Enabled( 1 );
+					DataFilterSource9 << Horizontal Alignment( "Default" );
+					DataFilterSource9 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					DataFilterSource9 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					DataFilterSource9 << Text Color( 2147483647 );
+					DataFilterSource9 << Vertical Alignment( "Default" );
+					DataFilterSource9 << Visibility( "Visible" );
+					Splitter7 << Background Color( 2147483647 );
+					Splitter7 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter7 << Enabled( 1 );
+					Splitter7 << Horizontal Alignment( "Default" );
+					Splitter7 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter7 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter7 << Text Color( 2147483647 );
+					Splitter7 << Vertical Alignment( "Default" );
+					Splitter7 << Visibility( "Visible" );
+					Splitter7 << Dockable( 0 );
+					Splitter7 << Set Width( 918 );
+					Splitter7 << Set Height( 410 );
+					Splitter7 << Set Sizes( {0.5, 0.5} );
+					Splitter7 << set horizontal( 1 );
+					Splitter7 << Set Min Size( 550, 222 );
+					Splitter7 << Set Max Size( 60063, 30040 );
+					Splitter7 << Set Auto Stretching( 1, 1 );
+					StatusPieTabPage << Background Color( 2147483647 );
+					StatusPieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusPieTabPage << Enabled( 1 );
+					StatusPieTabPage << Horizontal Alignment( "Default" );
+					StatusPieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusPieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusPieTabPage << Text Color( 2147483647 );
+					StatusPieTabPage << Vertical Alignment( "Default" );
+					StatusPieTabPage << Visibility( "Visible" );
+					StatusPieTabPage << Title( "Status Distribution" );
+					StatusPieTabPage << Tip( "" );
+					StatusPieTabPage << Icon( "" );
+					StatusPieTabPage << Closeable( 0 );
+					StatusPieTabPage << Moveable( 0 );
+					StatusPie << Background Color( 2147483647 );
+					StatusPie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusPie << Enabled( 1 );
+					StatusPie << Horizontal Alignment( "Default" );
+					StatusPie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusPie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusPie << Text Color( 2147483647 );
+					StatusPie << Vertical Alignment( "Default" );
+					StatusPie << Visibility( "Visible" );
+					StatusPie << set horizontal( 0 );
+					DataFilterSource8 << Background Color( 2147483647 );
+					DataFilterSource8 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					DataFilterSource8 << Enabled( 1 );
+					DataFilterSource8 << Horizontal Alignment( "Default" );
+					DataFilterSource8 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					DataFilterSource8 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					DataFilterSource8 << Text Color( 2147483647 );
+					DataFilterSource8 << Vertical Alignment( "Default" );
+					DataFilterSource8 << Visibility( "Visible" );
+					LocationPieTabPage << Background Color( 2147483647 );
+					LocationPieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LocationPieTabPage << Enabled( 1 );
+					LocationPieTabPage << Horizontal Alignment( "Default" );
+					LocationPieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LocationPieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LocationPieTabPage << Text Color( 2147483647 );
+					LocationPieTabPage << Vertical Alignment( "Default" );
+					LocationPieTabPage << Visibility( "Visible" );
+					LocationPieTabPage << Title( "Location Distribution" );
+					LocationPieTabPage << Tip( "" );
+					LocationPieTabPage << Icon( "" );
+					LocationPieTabPage << Closeable( 0 );
+					LocationPieTabPage << Moveable( 0 );
+					LocationPie << Background Color( 2147483647 );
+					LocationPie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LocationPie << Enabled( 1 );
+					LocationPie << Horizontal Alignment( "Default" );
+					LocationPie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LocationPie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LocationPie << Text Color( 2147483647 );
+					LocationPie << Vertical Alignment( "Default" );
+					LocationPie << Visibility( "Visible" );
+					LocationPie << set horizontal( 0 );
+					StatusDotTabPage << Background Color( 2147483647 );
+					StatusDotTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDotTabPage << Enabled( 1 );
+					StatusDotTabPage << Horizontal Alignment( "Default" );
+					StatusDotTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDotTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDotTabPage << Text Color( 2147483647 );
+					StatusDotTabPage << Vertical Alignment( "Default" );
+					StatusDotTabPage << Visibility( "Visible" );
+					StatusDotTabPage << Title( "Status Timeline, Grouped by Track" );
+					StatusDotTabPage << Tip( "" );
+					StatusDotTabPage << Icon( "" );
+					StatusDotTabPage << Closeable( 0 );
+					StatusDotTabPage << Moveable( 0 );
+					StatusDot << Background Color( 2147483647 );
+					StatusDot << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDot << Enabled( 1 );
+					StatusDot << Horizontal Alignment( "Default" );
+					StatusDot << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDot << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					StatusDot << Text Color( 2147483647 );
+					StatusDot << Vertical Alignment( "Default" );
+					StatusDot << Visibility( "Visible" );
+					StatusDot << set horizontal( 0 );
+					LinkTabPage << Background Color( 2147483647 );
+					LinkTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTabPage << Enabled( 1 );
+					LinkTabPage << Horizontal Alignment( "Default" );
+					LinkTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTabPage << Text Color( 2147483647 );
+					LinkTabPage << Vertical Alignment( "Default" );
+					LinkTabPage << Visibility( "Visible" );
+					LinkTabPage << Title( "Link Breakdown" );
+					LinkTabPage << Tip( "" );
+					LinkTabPage << Icon( "" );
+					LinkTabPage << Closeable( 0 );
+					LinkTabPage << Moveable( 0 );
+					LinkDataFilterContext << Background Color( 2147483647 );
+					LinkDataFilterContext << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataFilterContext << Enabled( 1 );
+					LinkDataFilterContext << Horizontal Alignment( "Default" );
+					LinkDataFilterContext << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataFilterContext << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataFilterContext << Text Color( 2147483647 );
+					LinkDataFilterContext << Vertical Alignment( "Default" );
+					LinkDataFilterContext << Visibility( "Visible" );
+					Splitter3 << Background Color( 2147483647 );
+					Splitter3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter3 << Enabled( 1 );
+					Splitter3 << Horizontal Alignment( "Default" );
+					Splitter3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter3 << Text Color( 2147483647 );
+					Splitter3 << Vertical Alignment( "Default" );
+					Splitter3 << Visibility( "Visible" );
+					Splitter3 << Dockable( 0 );
+					Splitter3 << Set Width( 1914 );
+					Splitter3 << Set Height( 923 );
+					Splitter3 << Set Sizes( {0.466771323914181, 0.533228676085818} );
+					Splitter3 << set horizontal( 1 );
+					Splitter3 << Set Min Size( 458, 327 );
+					Splitter3 << Set Max Size( 40681, 60083 );
+					Splitter3 << Set Auto Stretching( 1, 1 );
+					List2 << Background Color( 2147483647 );
+					List2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					List2 << Enabled( 1 );
+					List2 << Horizontal Alignment( "Default" );
+					List2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					List2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					List2 << Text Color( 2147483647 );
+					List2 << Vertical Alignment( "Default" );
+					List2 << Visibility( "Visible" );
+					List2 << set horizontal( 1 );
+					LinkLocalDataFilter << Background Color( 2147483647 );
+					LinkLocalDataFilter << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkLocalDataFilter << Enabled( 1 );
+					LinkLocalDataFilter << Horizontal Alignment( "Default" );
+					LinkLocalDataFilter << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkLocalDataFilter << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkLocalDataFilter << Text Color( 2147483647 );
+					LinkLocalDataFilter << Vertical Alignment( "Default" );
+					LinkLocalDataFilter << Visibility( "Visible" );
+					LinkDataTableBox << Background Color( 2147483647 );
+					LinkDataTableBox << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataTableBox << Enabled( 1 );
+					LinkDataTableBox << Horizontal Alignment( "Default" );
+					LinkDataTableBox << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataTableBox << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataTableBox << Text Color( 2147483647 );
+					LinkDataTableBox << Vertical Alignment( "Default" );
+					LinkDataTableBox << Visibility( "Visible" );
+					Splitter5 << Background Color( 2147483647 );
+					Splitter5 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter5 << Enabled( 1 );
+					Splitter5 << Horizontal Alignment( "Default" );
+					Splitter5 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter5 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					Splitter5 << Text Color( 2147483647 );
+					Splitter5 << Vertical Alignment( "Default" );
+					Splitter5 << Visibility( "Visible" );
+					Splitter5 << Dockable( 0 );
+					Splitter5 << Set Width( 999 );
+					Splitter5 << Set Height( 903 );
+					Splitter5 << Set Sizes( {0.497826086956522, 0.502173913043478} );
+					Splitter5 << set horizontal( 0 );
+					Splitter5 << Set Min Size( 262, 307 );
+					Splitter5 << Set Max Size( 30040, 60063 );
+					Splitter5 << Set Auto Stretching( 1, 1 );
+					LinkDataFilterSource << Background Color( 2147483647 );
+					LinkDataFilterSource << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataFilterSource << Enabled( 1 );
+					LinkDataFilterSource << Horizontal Alignment( "Default" );
+					LinkDataFilterSource << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataFilterSource << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDataFilterSource << Text Color( 2147483647 );
+					LinkDataFilterSource << Vertical Alignment( "Default" );
+					LinkDataFilterSource << Visibility( "Visible" );
+					LinkTreemapTabPage << Background Color( 2147483647 );
+					LinkTreemapTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTreemapTabPage << Enabled( 1 );
+					LinkTreemapTabPage << Horizontal Alignment( "Default" );
+					LinkTreemapTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTreemapTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTreemapTabPage << Text Color( 2147483647 );
+					LinkTreemapTabPage << Vertical Alignment( "Default" );
+					LinkTreemapTabPage << Visibility( "Visible" );
+					LinkTreemapTabPage << Title( "Link Distribution" );
+					LinkTreemapTabPage << Tip( "" );
+					LinkTreemapTabPage << Icon( "" );
+					LinkTreemapTabPage << Closeable( 0 );
+					LinkTreemapTabPage << Moveable( 0 );
+					LinkTreemap << Background Color( 2147483647 );
+					LinkTreemap << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTreemap << Enabled( 1 );
+					LinkTreemap << Horizontal Alignment( "Default" );
+					LinkTreemap << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTreemap << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTreemap << Text Color( 2147483647 );
+					LinkTreemap << Vertical Alignment( "Default" );
+					LinkTreemap << Visibility( "Visible" );
+					LinkTreemap << set horizontal( 0 );
+					LinkTabPage3 << Background Color( 2147483647 );
+					LinkTabPage3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTabPage3 << Enabled( 1 );
+					LinkTabPage3 << Horizontal Alignment( "Default" );
+					LinkTabPage3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTabPage3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkTabPage3 << Text Color( 2147483647 );
+					LinkTabPage3 << Vertical Alignment( "Default" );
+					LinkTabPage3 << Visibility( "Visible" );
+					LinkTabPage3 << Title( "Link Timeline" );
+					LinkTabPage3 << Tip( "" );
+					LinkTabPage3 << Icon( "" );
+					LinkTabPage3 << Closeable( 0 );
+					LinkTabPage3 << Moveable( 0 );
+					LinkDotTabPage << Background Color( 2147483647 );
+					LinkDotTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDotTabPage << Enabled( 1 );
+					LinkDotTabPage << Horizontal Alignment( "Default" );
+					LinkDotTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDotTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+					LinkDotTabPage << Text Color( 2147483647 );
+					LinkDotTabPage << Vertical Alignment( "Default" );
+					LinkDotTabPage << Visibility( "Visible" );
+					LinkDotTabPage << set horizontal( 0 );
+				)
+			)
+		),
+		Initialize(
+			Module1 << Auto Launch( 1 );
+			Module1 << Set Module Type( "Report" );
+			Module1 << Set Window Title( "^APPNAME" );
+			Module1 << Set Min Size( 0, 0 );
+			Module1 << Set Max Size( 30000, 30000 );
+			Module1 << Set Auto Stretching( ., . );
+		)
+	) << Run
+
+	);	
+	))));
+)	),
+	Allocate(
+		Dashboard = Plan(
+			PreAllocate,
+			Script(JSL Quote(
+				promptused = 0;
+				thisModuleInstance << Create Objects;				
+				MainTabPage << Set Scriptable Object(thisApplication);
+				(thisModuleInstance<<GetBox) << Maximize Window;
+				filterwindow = New Window( "Dashboard Data - JMP Pro", 
+					maintab = Tab Page Box(Title(Name || " Dashboard Data"),
+						H Splitter Box(Size( 2000, 1500 ), <<Sizes( {0.3, 0.6}),
+						scroll = V Scroll Box(
+							Outline Box("Control Panel",
+							V List Box(	
+								H List Box(
+								NewQueryButton = Button Box("New Query", << Set Icon("NewApplication"), << Margin( {Left( 2 ), Top( 2 ), Right( 2 ), Bottom( 2 )} ), << Set Min Size( 96, 20 ), << Set Max Size( 96, 20 ), << Set Icon Location( "Left" )), 
+								RefreshButton = Button Box ("Refresh Data", << Set Icon("Refresh"), << Margin( {Left( 2 ), Top( 2 ), Right( 2 ), Bottom( 2 )} ), << Set Min Size( 104, 20 ), << Set Max Size( 104, 20 ), << Set Icon Location( "Left" )), 
+								graphbutton = Button Box("Create Graph", << Set Icon("Chart"), << Margin( {Left( 2 ), Top( 2 ), Right( 2 ), Bottom( 2 )} ), << Set Min Size( 104, 20 ), << Set Max Size( 104, 20 ), << Set Icon Location( "Left" ))
+								)	
+							),
+								df = datafilter = reportdata << Data Filter(Conditional, Mode( Select( 0 ), Show( 0 ), Include( 1 ) )),
+							),
+							),
+							scroll << Set Width( 400 ), scroll << Set Auto Stretching(0,1), df << Set Auto Stretching(1,0),
+							rdt = reportdata << New data Box(),
+							
+						)// H Splitter
+						
+					), // window	
+				);	
+				(thisModuleInstance<<GetBox) << On Close(
+					if(promptused == 0,
+							nw = New Window("Exit Application", <<Modal,
+									V List Box(
+										Text Box("Are you sure you want to exit? This will close the entire application."),  
+										Spacer Box(10, 20),
+										H List Box( Spacer Box (100, 10), Button Box("OK"), Button Box("Cancel"))
+									)
+							);
+						if(nw["Button"] == -1,
+							promptused = 0;
+							0,
+							promptused = 1;
+							try(close(reportdata, nosave));
+						);
+					,
+					try(close(reportdata, nosave));
+					);
+				);
+				exitfunc = Function({},try((thisModuleInstance<<GetBox) << close window;));
+				filterwindow << On Close( 
+					if(promptused == 0,
+						nw = New Window("Exit Application", <<Modal,
+								V List Box(
+									Text Box("Are you sure you want to exit? This will close the entire application."),  
+									Spacer Box(10, 20),
+									H List Box( Spacer Box (100, 10), Button Box("OK"), Button Box("Cancel"))
+								)
+						);
+					if(nw["Button"] == -1,
+						promptused = 0;
+						0,
+						promptused = 1;	
+						exitfunc();
+					);
+					);
+				);
+	
+				NewQueryButton << Set Function(JSL Quote(
+						oldquery = currentquery;
+						queryprompt();
+						if(oldquery != currentquery ,
+						New SQL Query(Version( 130 ),Connection("SAS:PHYSICAL:host=jmpdev2.na.sas.com;port=48591;username=sasdemo;password=SASpw1"),
+						QueryName( "Report Data" ),CustomSQL(currentquery)) << Run Foreground( UpdateTable( reportdata ));
+						SAS Disconnect();
+						reportdata << Delete Columns( :SQL );
+						reportdata:analysis <<set each value( "Launch" );
+						MainTabPage << Title( Name || " Defects Dashboard" );
+						maintab << Title( Name || " Defects Dashboard" );
+				)));
+				RefreshButton << Set Function(JSL Quote(
+					New SQL Query(Version( 130 ), Connection("SAS:PHYSICAL:host=jmpdev2.na.sas.com;port=48591;username=sasdemo;password=SASpw1"), QueryName( "Report Data" ), CustomSQL(currentquery))<< Run Foreground(UpdateTable(reportdata));
+					SAS Disconnect();
+				));
+				GraphButton << Set Function(
+					Graph Builder(Show Footer( 0 ), Categorical Color Theme( "Universal" ), Variables, Elements( Points( Legend( 1 ) ) ), SendToReport( Dispatch( {}, "Graph Builder", OutlineBox, {Set Title( "Report Data Custom Graph" )} ) ))
+				);
+				datafilter << Horizontal Alignment ("Center");
+				rdt << close side panels( 1 );
+	
+				MainTabPage << Title( Name || " Defects Dashboard" );
+			)),
+			Allocate(
+				MainTabPage = Tab Page Box();
+				TabList = Tab Box();
+				OverviewTab = Tab Page Box();
+				OverviewDataFilterContext = Data Filter Context Box();
+				OverviewTabSplitter1 = H Splitter Box();
+				OverviewTabSplitter2 = V Splitter Box();
+				OverviewTabTypePieTabPage = Tab Page Box();
+				OverviewTabTypePie = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 239, 218 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :Type ) ),
+						Elements( Pie( X, Legend( 2 ), Label( "Label by Value" ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} )
+						)
+					)
+				);
+				OverviewTabPriorityPieTabPage = Tab Page Box();
+				OverviewTabPriorityPie = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 265, 232 ),
+						Show Control Panel( 0 ),
+						Fit to Window( "On" ),
+						Variables( X( :priority ) ),
+						Elements( Pie( X, Legend( 3 ), Label( "Label by Value" ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Priority" )} )
+						)
+					)
+				);
+				OverviewTabOriginPieTabPage = Tab Page Box();
+				OverviewTabOriginPie = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 264, 235 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :Origin ) ),
+						Elements( Pie( X, Legend( 3 ), Label( "Label by Value" ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} )
+						)
+					)
+				);
+				OverviewTabSplitter3 = V Splitter Box();
+				OverviewTabStagePieTabPage = Tab Page Box();
+				OverviewTabStagePie = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 328, 274 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :Stagefound ) ),
+						Elements( Pie( X, Legend( 2 ), Label( "Label by Value" ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Stage Found" )} )
+						),
+					)
+				);
+				OverviewTabPubsPieTabPage = Tab Page Box();
+				OverviewTabPubsPie = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 296, 232 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :pub_issue ) ),
+						Elements( Pie( X, Legend( 5 ), Label( "Label by Value" ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Pubs Issue" )} )
+						),
+					)
+				);
+				OverviewTabStatusPieTabPage = Tab Page Box();
+				OverviewTabStatusPie = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 278, 235 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :current_status ) ),
+						Elements( Pie( X, Legend( 2 ), Label( "Label by Value" ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Status" )} )
+						)
+					)
+				);
+				OverviewTabSplitter4 = V Splitter Box();
+				OverviewTabComponentTreemapTabPage = Tab Page Box();
+				OverviewTabComponentTreemap = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 788, 379 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :component ), Color( :product ) ),
+						Elements( Treemap( X, Legend( 4 ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Product" )} )
+						)
+					)
+				);
+				OverviewTabLocationTreemapTabPage = Tab Page Box();
+				OverviewTabLocationTreemap = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 871, 385 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :current_location ), Color( :current_location ) ),
+						Elements( Treemap( X, Legend( 3 ) ) ),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Platform" )} )
+						)
+					)
+				);
+				PriorityTab = Tab Page Box();
+				PriorityDataFilterContext = Data Filter Context Box();
+				PriorityTabSplitter1 = H Splitter Box();
+				PriorityTabDataFilterSource1 = Data Filter Source Box();
+				PriorityTabSplitter2 = V Splitter Box();
+				PriorityTabPriorityBarTabPage = Tab Page Box();
+				PriorityTabPriorityBar = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 669, 86 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( Y( :priority ), Color( :priority ) ),
+						Elements(
+							Bar( Y, Legend( 57 ), Response Axis( "X" ), Label( "Label by Value" ) ),
+							Caption Box( Y, Legend( 58 ), Summary Statistic( "N" ), Y Position( "Bottom" ) )
+						),
+						SendToReport(
+							Dispatch(
+								{},
+								"Graph Builder",
+								OutlineBox,
+								{Set Title( "Priority Distribution" )}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Hide( 1 )} ),
+							Dispatch(
+								{},
+								"400",
+								LegendBox,
+								{Set Title( "" ), Legend Position( {57, [3, 2, 1, 0]} ),
+								Position( {3, 2, 1, 0} )}
+							)
+						)
+					)
+				);
+				PriorityTabDataFilterSource2 = Data Filter Source Box();
+				PriorityTabSplitter3 = V Splitter Box();
+				PriorityTabProductBarTabPage = Tab Page Box();
+				PriorityTabProductBar = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 710, 195 ),
+						Show Control Panel( 0 ),
+						Show Legend( 0 ),
+						Show Footer( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( Y( :product ), Overlay( :priority ) ),
+						Elements( Bar( Y, Legend( 5 ) ), Caption Box( Y, Legend( 6 ) ) ),
+						SendToReport(
+							Dispatch(
+								{},
+								"Graph Builder",
+								OutlineBox,
+								{Set Title( "Product Frequency, Colored by Priority" )}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Hide( 1 )} )
+						)
+					)
+				);
+				PriorityTabDataFilterSource3 = Data Filter Source Box();
+				PriorityTabFreqBarTabPage = Tab Page Box();
+				PriorityTabFreqBar = Platform(
+					reportdata,
+					Graph Builder(
+						//Size( 714, 333 ),
+						Show Control Panel( 0 ),
+						Show Legend( 0 ),
+						Show Footer( 0 ),
+						Fit to Window( "On" ),
+						Variables( Y( :component ), Overlay( :priority ) ),
+						Elements(
+							Bar( Y, Legend( 23 ), Bar Style( "Stacked" ) ),
+							Caption Box( Y, Legend( 10 ) )
+						),
+						SendToReport(
+							Dispatch(
+								{},
+								"Graph Builder",
+								OutlineBox,
+								{Set Title( "Component Frequency, Colored by Priority" )}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Priority Coloring" )} )
+						)
+					)
+				);
+				PriorityTabSplitter4 = V Splitter Box();
+				PriorityTabScatterplotTabPage = Tab Page Box();
+				PriorityTabScatterplot = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 859, 361 ),
+						Show Control Panel( 0 ),
+						Show Legend( 0 ),
+						Show Footer( 0 ),
+						Fit to Window( "On" ),
+						Variables(
+							X( :creation_date ),
+							X(
+								Transform Column(
+									"Year Quarter[Creation_Date]",
+									Format( "yyyyQq", 10 ),
+									Formula(
+										Date DMY(
+											1,
+											Floor( (Month( :creation_date ) - 1) / 3 ) * 3 + 1,
+											Year( :creation_date )
+										)
+									)
+								),
+								Position( 1 )
+							),
+							Y( :completion_time ),
+							Overlay( :priority ),
+							Color( :priority )
+						),
+						Elements(
+							Caption Box( Color( 0 ), Legend( 4 ), Summary Statistic( "N" ) ),
+							Points( X( 1 ), Y, Legend( 21 ) )
+						),
+						SendToReport(
+							Dispatch(
+								{},
+								"Graph Builder",
+								OutlineBox,
+								{Set Title(
+									"Completion Time (in days) vs. Creation Date, Colored by Priority"
+								)}
+							),
+							Dispatch(
+								{},
+								"400",
+								ScaleBox,
+								{Legend Model(
+									21,
+									Properties( 0, {Marker( "Dot" )}, Item ID( "Low", 1 ) ),
+									Properties( 1, {Marker( "Dot" )}, Item ID( "Medium", 1 ) ),
+									Properties( 2, {Marker( "Dot" )}, Item ID( "High", 1 ) ),
+									Properties( 3, {Marker( "Dot" )}, Item ID( "Alert", 1 ) )
+								)}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Priority Coloring" )} )
+						)
+					)
+				);
+				PriorityTabBoxplotTabPage = Tab Page Box();
+				PriorityTabBoxplot = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 864, 403 ),
+						Show Control Panel( 0 ),
+						Show Legend( 0 ),
+						Fit to Window( "On" ),
+						X Group Edge( "Bottom" ),
+						Variables(
+							Y( :completion_time ),
+							Group X( :priority, Show Title( 0 ) ),
+							Overlay( :priority ),
+							Color( :priority )
+						),
+						Elements(
+							Box Plot( Y, Legend( 5 ) ),
+							Caption Box( Y, Overlay( 0 ), Color( 0 ), Legend( 7 ) )
+						),
+						SendToReport(
+							Dispatch(
+								{},
+								"Graph Builder",
+								OutlineBox,
+								{Set Title( "Completion Time (in days) Boxplots, Colored by Priority" )}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "400", LegendBox, {Set Title( "Priority Coloring" )} )
+						)
+					)
+				);
+				ComponentTab = Tab Page Box();
+				ComponentDataFilterContext = Data Filter Context Box();
+				ComponentTabSplitter1 = H Splitter Box();
+				ComponentTabDataFilterSource1 = Data Filter Source Box();
+				ComponentTabSplitter2 = V Splitter Box();
+				ComponentTabLocationTreemapTabPage = Tab Page Box();
+				ComponentTabLocationTreemap = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 446, 339 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :current_location ) ),
+						Elements(
+							Treemap( X, Legend( 2 ), Layout( "Squarify" ), Show Frames( 0 ) ),
+							Caption Box( X, Legend( 3 ), X Position( "Left" ) )
+						),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} )
+						)
+					)
+				);
+				ComponentTabDataFilterSource2 = Data Filter Source Box();
+				ComponentTabSplitter3 = V Splitter Box();
+				ComponentTabProductTreemapTabPage = Tab Page Box();
+				ComponentTabProductTreemap = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 450, 299 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :product ) ),
+						Elements(
+							Treemap( X, Legend( 3 ), Layout( "Squarify" ), Show Frames( 0 ) ),
+							Caption Box( X, Legend( 4 ), X Position( "Left" ) )
+						),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} )
+						)
+					)
+				);
+				ComponentTabDataFilterSource3 = Data Filter Source Box();
+				ComponentTabComponentTreemapTabPage = Tab Page Box();
+				ComponentTabComponentTreemap = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 474, 279 ),
+						Show Control Panel( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :component ) ),
+						Elements(
+							Treemap( X, Legend( 5 ), Layout( "Squarify" ), Show Frames( 0 ) ),
+							Caption Box( X, Legend( 6 ), X Position( "Left" ) )
+						),
+						SendToReport(
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "" )} )
+						)
+					)
+				);
+				ComponentSplitter4 = H Splitter Box();
+				ComponentTabScatterplotTabPage1 = Tab Page Box();
+				ComponentTabScatterplot1 = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 830, 385 ),
+						Show Control Panel( 0 ),
+						Show Legend( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :component ), Y( :completion_time ), Overlay( :component ) ),
+						Elements( Points( X, Y, Legend( 26 ) ) ),
+						SendToReport(
+							Dispatch(
+								{},
+								"component",
+								ScaleBox,
+								{Label Row( Label Orientation( "Vertical" ) )}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "Component" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Set Text( "Completion Time" )} )
+						)
+					)
+				);
+				ComponentTabScatterplotTabPage2 = Tab Page Box();
+				ComponentTabScatterplot2 = Platform(
+					reportdata,
+					Graph Builder(
+						Size( 840, 385 ),
+						Show Control Panel( 0 ),
+						Show Legend( 0 ),
+						Categorical Color Theme( "Universal" ),
+						Fit to Window( "On" ),
+						Variables( X( :component ), Y( :virulence ), Overlay( :component ) ),
+						Elements( Points( X, Y, Legend( 26 ) ) ),
+						SendToReport(
+							Dispatch(
+								{},
+								"component",
+								ScaleBox,
+								{Label Row( Label Orientation( "Vertical" ) )}
+							),
+							Dispatch( {}, "graph title", TextEditBox, {Set Text( "" )} ),
+							Dispatch( {}, "X title", TextEditBox, {Set Text( "Component" )} ),
+							Dispatch( {}, "Y title", TextEditBox, {Set Text( "Virulence" )} )
+						)
+					)
+				);
+			),
+			Organize(
+				Reparent( ComponentTabScatterplotTabPage2( ComponentTabScatterplot2 ) );
+				Reparent( ComponentSplitter4( ComponentTabScatterplotTabPage2 ) );
+				Reparent( ComponentTabScatterplotTabPage1( ComponentTabScatterplot1 ) );
+				Reparent( ComponentSplitter4( ComponentTabScatterplotTabPage1 ) );
+				Reparent( ComponentTabSplitter1( ComponentSplitter4 ) );
+				Reparent( ComponentTabComponentTreemapTabPage( ComponentTabComponentTreemap ) );
+				Reparent( ComponentTabDataFilterSource3( ComponentTabComponentTreemapTabPage ) );
+				Reparent( ComponentTabSplitter3( ComponentTabDataFilterSource3 ) );
+				Reparent( ComponentTabProductTreemapTabPage( ComponentTabProductTreemap ) );
+				Reparent( ComponentTabSplitter3( ComponentTabProductTreemapTabPage ) );
+				Reparent( ComponentTabDataFilterSource2( ComponentTabSplitter3 ) );
+				Reparent( ComponentTabSplitter2( ComponentTabDataFilterSource2 ) );
+				Reparent( ComponentTabLocationTreemapTabPage( ComponentTabLocationTreemap ) );
+				Reparent( ComponentTabSplitter2( ComponentTabLocationTreemapTabPage ) );
+				Reparent( ComponentTabDataFilterSource1( ComponentTabSplitter2 ) );
+				Reparent( ComponentTabSplitter1( ComponentTabDataFilterSource1 ) );
+				Reparent( ComponentDataFilterContext( ComponentTabSplitter1 ) );
+				Reparent( ComponentTab( ComponentDataFilterContext ) );
+				Reparent( TabList( ComponentTab ) );
+				Reparent( PriorityTabBoxplotTabPage( PriorityTabBoxplot ) );
+				Reparent( PriorityTabSplitter4( PriorityTabBoxplotTabPage ) );
+				Reparent( PriorityTabScatterplotTabPage( PriorityTabScatterplot ) );
+				Reparent( PriorityTabSplitter4( PriorityTabScatterplotTabPage ) );
+				Reparent( PriorityTabSplitter1( PriorityTabSplitter4 ) );
+				Reparent( PriorityTabFreqBarTabPage( PriorityTabFreqBar ) );
+				Reparent( PriorityTabDataFilterSource3( PriorityTabFreqBarTabPage ) );
+				Reparent( PriorityTabSplitter3( PriorityTabDataFilterSource3 ) );
+				Reparent( PriorityTabProductBarTabPage( PriorityTabProductBar ) );
+				Reparent( PriorityTabSplitter3( PriorityTabProductBarTabPage ) );
+				Reparent( PriorityTabDataFilterSource2( PriorityTabSplitter3 ) );
+				Reparent( PriorityTabSplitter2( PriorityTabDataFilterSource2 ) );
+				Reparent( PriorityTabPriorityBarTabPage( PriorityTabPriorityBar ) );
+				Reparent( PriorityTabSplitter2( PriorityTabPriorityBarTabPage ) );
+				Reparent( PriorityTabDataFilterSource1( PriorityTabSplitter2 ) );
+				Reparent( PriorityTabSplitter1( PriorityTabDataFilterSource1 ) );
+				Reparent( PriorityDataFilterContext( PriorityTabSplitter1 ) );
+				Reparent( PriorityTab( PriorityDataFilterContext ) );
+				Reparent( TabList( PriorityTab ) );
+				Reparent( OverviewTabLocationTreemapTabPage( OverviewTabLocationTreemap ) );
+				Reparent( OverviewTabSplitter4( OverviewTabLocationTreemapTabPage ) );
+				Reparent( OverviewTabComponentTreemapTabPage( OverviewTabComponentTreemap ) );
+				Reparent( OverviewTabSplitter4( OverviewTabComponentTreemapTabPage ) );
+				Reparent( OverviewTabSplitter1( OverviewTabSplitter4 ) );
+				Reparent( OverviewTabStatusPieTabPage( OverviewTabStatusPie ) );
+				Reparent( OverviewTabSplitter3( OverviewTabStatusPieTabPage ) );
+				Reparent( OverviewTabPubsPieTabPage( OverviewTabPubsPie ) );
+				Reparent( OverviewTabSplitter3( OverviewTabPubsPieTabPage ) );
+				Reparent( OverviewTabStagePieTabPage( OverviewTabStagePie ) );
+				Reparent( OverviewTabSplitter3( OverviewTabStagePieTabPage ) );
+				Reparent( OverviewTabSplitter1( OverviewTabSplitter3 ) );
+				Reparent( OverviewTabOriginPieTabPage( OverviewTabOriginPie ) );
+				Reparent( OverviewTabSplitter2( OverviewTabOriginPieTabPage ) );
+				Reparent( OverviewTabPriorityPieTabPage( OverviewTabPriorityPie ) );
+				Reparent( OverviewTabSplitter2( OverviewTabPriorityPieTabPage ) );
+				Reparent( OverviewTabTypePieTabPage( OverviewTabTypePie ) );
+				Reparent( OverviewTabSplitter2( OverviewTabTypePieTabPage ) );
+				Reparent( OverviewTabSplitter1( OverviewTabSplitter2 ) );
+				Reparent( OverviewDataFilterContext( OverviewTabSplitter1 ) );
+				Reparent( OverviewTab( OverviewDataFilterContext ) );
+				Reparent( TabList( OverviewTab ) );
+				Reparent( MainTabPage( TabList ) );
+				Relocate( MainTabPage( 0, 0 ) );
+			),
+			Initialize(
+				MainTabPage << Background Color( 2147483647 );
+				MainTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				MainTabPage << Enabled( 1 );
+				MainTabPage << Horizontal Alignment( "Default" );
+				MainTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				MainTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				MainTabPage << Text Color( 2147483647 );
+				MainTabPage << Vertical Alignment( "Default" );
+				MainTabPage << Visibility( "Visible" );
+				MainTabPage << Tip( "" );
+				MainTabPage << Icon( "" );
+				MainTabPage << Closeable( 0 );
+				MainTabPage << Moveable( 0 );
+				TabList << Background Color( 2147483647 );
+				TabList << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				TabList << Enabled( 1 );
+				TabList << Horizontal Alignment( "Default" );
+				TabList << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				TabList << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				TabList << Text Color( 2147483647 );
+				TabList << Vertical Alignment( "Default" );
+				TabList << Visibility( "Visible" );
+				TabList << Dockable( 0 );
+				TabList << Set Selected( 1 );
+				TabList << Set Style( "Tab" );
+				TabList << Set Overflow Enabled( 0 );
+				TabList << Set Tab Close( Empty() );
+				TabList << Set Tab Close Tip( "" );
+				TabList << Set Tab New( Empty() );
+				TabList << Set Tab New Tip( "" );
+				TabList << Set Tab New Icon( "" );
+				TabList << Show Tabs( 1 );
+				TabList << Set Tab Changed( Empty() );
+				OverviewTab << Background Color( 2147483647 );
+				OverviewTab << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTab << Enabled( 1 );
+				OverviewTab << Horizontal Alignment( "Default" );
+				OverviewTab << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTab << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTab << Text Color( 2147483647 );
+				OverviewTab << Vertical Alignment( "Default" );
+				OverviewTab << Visibility( "Visible" );
+				OverviewTab << Title( "Basic Overview" );
+				OverviewTab << Tip( "" );
+				OverviewTab << Icon( "" );
+				OverviewTab << Closeable( 0 );
+				OverviewTab << Moveable( 0 );
+				OverviewDataFilterContext << Background Color( 2147483647 );
+				OverviewDataFilterContext << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewDataFilterContext << Enabled( 1 );
+				OverviewDataFilterContext << Horizontal Alignment( "Default" );
+				OverviewDataFilterContext << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewDataFilterContext << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewDataFilterContext << Text Color( 2147483647 );
+				OverviewDataFilterContext << Vertical Alignment( "Default" );
+				OverviewDataFilterContext << Visibility( "Visible" );
+				OverviewTabSplitter1 << Background Color( 2147483647 );
+				OverviewTabSplitter1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter1 << Enabled( 1 );
+				OverviewTabSplitter1 << Horizontal Alignment( "Default" );
+				OverviewTabSplitter1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter1 << Text Color( 2147483647 );
+				OverviewTabSplitter1 << Vertical Alignment( "Default" );
+				OverviewTabSplitter1 << Visibility( "Visible" );
+				OverviewTabSplitter1 << Dockable( 1 );
+				OverviewTabSplitter1 << Set Width( 1914 );
+				OverviewTabSplitter1 << Set Height( 923 );
+				OverviewTabSplitter1 << Set Sizes( {0.217069214571632, 0.233141948769411, 0.545893343460083} );
+				OverviewTabSplitter1 << set horizontal( 1 );
+				OverviewTabSplitter1 << Set Min Size( 921, 572 );
+				OverviewTabSplitter1 << Set Max Size( 90126, 90086 );
+				OverviewTabSplitter1 << Set Auto Stretching( 1, 1 );
+				OverviewTabSplitter2 << Background Color( 2147483647 );
+				OverviewTabSplitter2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter2 << Enabled( 1 );
+				OverviewTabSplitter2 << Horizontal Alignment( "Default" );
+				OverviewTabSplitter2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter2 << Text Color( 2147483647 );
+				OverviewTabSplitter2 << Vertical Alignment( "Default" );
+				OverviewTabSplitter2 << Visibility( "Visible" );
+				OverviewTabSplitter2 << Dockable( 1 );
+				OverviewTabSplitter2 << Set Width( 396 );
+				OverviewTabSplitter2 << Set Height( 903 );
+				OverviewTabSplitter2 << Set Sizes( {0.328111733879149, 0.333562094907042, 0.337922383729356} );
+				OverviewTabSplitter2 << set horizontal( 0 );
+				OverviewTabSplitter2 << Set Min Size( 256, 487 );
+				OverviewTabSplitter2 << Set Max Size( 30020, 90066 );
+				OverviewTabSplitter2 << Set Auto Stretching( 1, 1 );
+				OverviewTabTypePieTabPage << Background Color( 2147483647 );
+				OverviewTabTypePieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabTypePieTabPage << Enabled( 1 );
+				OverviewTabTypePieTabPage << Horizontal Alignment( "Default" );
+				OverviewTabTypePieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabTypePieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabTypePieTabPage << Text Color( 2147483647 );
+				OverviewTabTypePieTabPage << Vertical Alignment( "Default" );
+				OverviewTabTypePieTabPage << Visibility( "Visible" );
+				OverviewTabTypePieTabPage << Title( "Type Distribution" );
+				OverviewTabTypePieTabPage << Tip( "" );
+				OverviewTabTypePieTabPage << Icon( "" );
+				OverviewTabTypePieTabPage << Closeable( 0 );
+				OverviewTabTypePieTabPage << Moveable( 1 );
+				OverviewTabTypePie << Background Color( 2147483647 );
+				OverviewTabTypePie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabTypePie << Enabled( 1 );
+				OverviewTabTypePie << Horizontal Alignment( "Default" );
+				OverviewTabTypePie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabTypePie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabTypePie << Text Color( 2147483647 );
+				OverviewTabTypePie << Vertical Alignment( "Default" );
+				OverviewTabTypePie << Visibility( "Visible" );
+				OverviewTabTypePie << set horizontal( 0 );
+				OverviewTabPriorityPieTabPage << Background Color( 2147483647 );
+				OverviewTabPriorityPieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPriorityPieTabPage << Enabled( 1 );
+				OverviewTabPriorityPieTabPage << Horizontal Alignment( "Default" );
+				OverviewTabPriorityPieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPriorityPieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPriorityPieTabPage << Text Color( 2147483647 );
+				OverviewTabPriorityPieTabPage << Vertical Alignment( "Default" );
+				OverviewTabPriorityPieTabPage << Visibility( "Visible" );
+				OverviewTabPriorityPieTabPage << Title( "Priority Distribution" );
+				OverviewTabPriorityPieTabPage << Tip( "" );
+				OverviewTabPriorityPieTabPage << Icon( "" );
+				OverviewTabPriorityPieTabPage << Closeable( 0 );
+				OverviewTabPriorityPieTabPage << Moveable( 1 );
+				OverviewTabPriorityPie << Background Color( 2147483647 );
+				OverviewTabPriorityPie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPriorityPie << Enabled( 1 );
+				OverviewTabPriorityPie << Horizontal Alignment( "Default" );
+				OverviewTabPriorityPie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPriorityPie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPriorityPie << Text Color( 2147483647 );
+				OverviewTabPriorityPie << Vertical Alignment( "Default" );
+				OverviewTabPriorityPie << Visibility( "Visible" );
+				OverviewTabPriorityPie << set horizontal( 0 );
+				OverviewTabOriginPieTabPage << Background Color( 2147483647 );
+				OverviewTabOriginPieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabOriginPieTabPage << Enabled( 1 );
+				OverviewTabOriginPieTabPage << Horizontal Alignment( "Default" );
+				OverviewTabOriginPieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabOriginPieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabOriginPieTabPage << Text Color( 2147483647 );
+				OverviewTabOriginPieTabPage << Vertical Alignment( "Default" );
+				OverviewTabOriginPieTabPage << Visibility( "Visible" );
+				OverviewTabOriginPieTabPage << Title( "Origin Distribution" );
+				OverviewTabOriginPieTabPage << Tip( "" );
+				OverviewTabOriginPieTabPage << Icon( "" );
+				OverviewTabOriginPieTabPage << Closeable( 0 );
+				OverviewTabOriginPieTabPage << Moveable( 1 );
+				OverviewTabOriginPie << Background Color( 2147483647 );
+				OverviewTabOriginPie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabOriginPie << Enabled( 1 );
+				OverviewTabOriginPie << Horizontal Alignment( "Default" );
+				OverviewTabOriginPie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabOriginPie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabOriginPie << Text Color( 2147483647 );
+				OverviewTabOriginPie << Vertical Alignment( "Default" );
+				OverviewTabOriginPie << Visibility( "Visible" );
+				OverviewTabOriginPie << set horizontal( 0 );
+				OverviewTabSplitter3 << Background Color( 2147483647 );
+				OverviewTabSplitter3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter3 << Enabled( 1 );
+				OverviewTabSplitter3 << Horizontal Alignment( "Default" );
+				OverviewTabSplitter3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter3 << Text Color( 2147483647 );
+				OverviewTabSplitter3 << Vertical Alignment( "Default" );
+				OverviewTabSplitter3 << Visibility( "Visible" );
+				OverviewTabSplitter3 << Dockable( 1 );
+				OverviewTabSplitter3 << Set Width( 427 );
+				OverviewTabSplitter3 << Set Height( 903 );
+				OverviewTabSplitter3 << Set Sizes( {0.327112729266297, 0.332546495533179, 0.337039136544462} );
+				OverviewTabSplitter3 << set horizontal( 0 );
+				OverviewTabSplitter3 << Set Min Size( 346, 552 );
+				OverviewTabSplitter3 << Set Max Size( 30020, 90066 );
+				OverviewTabSplitter3 << Set Auto Stretching( 1, 1 );
+				OverviewTabStagePieTabPage << Background Color( 2147483647 );
+				OverviewTabStagePieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStagePieTabPage << Enabled( 1 );
+				OverviewTabStagePieTabPage << Horizontal Alignment( "Default" );
+				OverviewTabStagePieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStagePieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStagePieTabPage << Text Color( 2147483647 );
+				OverviewTabStagePieTabPage << Vertical Alignment( "Default" );
+				OverviewTabStagePieTabPage << Visibility( "Visible" );
+				OverviewTabStagePieTabPage << Title( "Stage Distribution" );
+				OverviewTabStagePieTabPage << Tip( "" );
+				OverviewTabStagePieTabPage << Icon( "" );
+				OverviewTabStagePieTabPage << Closeable( 0 );
+				OverviewTabStagePieTabPage << Moveable( 1 );
+				OverviewTabStagePie << Background Color( 2147483647 );
+				OverviewTabStagePie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStagePie << Enabled( 1 );
+				OverviewTabStagePie << Horizontal Alignment( "Default" );
+				OverviewTabStagePie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStagePie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStagePie << Text Color( 2147483647 );
+				OverviewTabStagePie << Vertical Alignment( "Default" );
+				OverviewTabStagePie << Visibility( "Visible" );
+				OverviewTabStagePie << set horizontal( 0 );
+				OverviewTabPubsPieTabPage << Background Color( 2147483647 );
+				OverviewTabPubsPieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPubsPieTabPage << Enabled( 1 );
+				OverviewTabPubsPieTabPage << Horizontal Alignment( "Default" );
+				OverviewTabPubsPieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPubsPieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPubsPieTabPage << Text Color( 2147483647 );
+				OverviewTabPubsPieTabPage << Vertical Alignment( "Default" );
+				OverviewTabPubsPieTabPage << Visibility( "Visible" );
+				OverviewTabPubsPieTabPage << Title( "Pubs Affected Distribution" );
+				OverviewTabPubsPieTabPage << Tip( "" );
+				OverviewTabPubsPieTabPage << Icon( "" );
+				OverviewTabPubsPieTabPage << Closeable( 0 );
+				OverviewTabPubsPieTabPage << Moveable( 1 );
+				OverviewTabPubsPie << Background Color( 2147483647 );
+				OverviewTabPubsPie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPubsPie << Enabled( 1 );
+				OverviewTabPubsPie << Horizontal Alignment( "Default" );
+				OverviewTabPubsPie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPubsPie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabPubsPie << Text Color( 2147483647 );
+				OverviewTabPubsPie << Vertical Alignment( "Default" );
+				OverviewTabPubsPie << Visibility( "Visible" );
+				OverviewTabPubsPie << set horizontal( 0 );
+				OverviewTabStatusPieTabPage << Background Color( 2147483647 );
+				OverviewTabStatusPieTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStatusPieTabPage << Enabled( 1 );
+				OverviewTabStatusPieTabPage << Horizontal Alignment( "Default" );
+				OverviewTabStatusPieTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStatusPieTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStatusPieTabPage << Text Color( 2147483647 );
+				OverviewTabStatusPieTabPage << Vertical Alignment( "Default" );
+				OverviewTabStatusPieTabPage << Visibility( "Visible" );
+				OverviewTabStatusPieTabPage << Title( "Status Distribution" );
+				OverviewTabStatusPieTabPage << Tip( "" );
+				OverviewTabStatusPieTabPage << Icon( "" );
+				OverviewTabStatusPieTabPage << Closeable( 0 );
+				OverviewTabStatusPieTabPage << Moveable( 1 );
+				OverviewTabStatusPie << Background Color( 2147483647 );
+				OverviewTabStatusPie << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStatusPie << Enabled( 1 );
+				OverviewTabStatusPie << Horizontal Alignment( "Default" );
+				OverviewTabStatusPie << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStatusPie << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabStatusPie << Text Color( 2147483647 );
+				OverviewTabStatusPie << Vertical Alignment( "Default" );
+				OverviewTabStatusPie << Visibility( "Visible" );
+				OverviewTabStatusPie << set horizontal( 0 );
+				OverviewTabSplitter4 << Background Color( 2147483647 );
+				OverviewTabSplitter4 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter4 << Enabled( 1 );
+				OverviewTabSplitter4 << Horizontal Alignment( "Default" );
+				OverviewTabSplitter4 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter4 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabSplitter4 << Text Color( 2147483647 );
+				OverviewTabSplitter4 << Vertical Alignment( "Default" );
+				OverviewTabSplitter4 << Visibility( "Visible" );
+				OverviewTabSplitter4 << Dockable( 1 );
+				OverviewTabSplitter4 << Set Width( 1025 );
+				OverviewTabSplitter4 << Set Height( 903 );
+				OverviewTabSplitter4 << Set Sizes( {0.49616368286445, 0.50383631713555} );
+				OverviewTabSplitter4 << set horizontal( 0 );
+				OverviewTabSplitter4 << Set Min Size( 253, 352 );
+				OverviewTabSplitter4 << Set Max Size( 30020, 60043 );
+				OverviewTabSplitter4 << Set Auto Stretching( 1, 1 );
+				OverviewTabComponentTreemapTabPage << Background Color( 2147483647 );
+				OverviewTabComponentTreemapTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabComponentTreemapTabPage << Enabled( 1 );
+				OverviewTabComponentTreemapTabPage << Horizontal Alignment( "Default" );
+				OverviewTabComponentTreemapTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabComponentTreemapTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabComponentTreemapTabPage << Text Color( 2147483647 );
+				OverviewTabComponentTreemapTabPage << Vertical Alignment( "Default" );
+				OverviewTabComponentTreemapTabPage << Visibility( "Visible" );
+				OverviewTabComponentTreemapTabPage << Title( "Component Treemap, Colored by Product" );
+				OverviewTabComponentTreemapTabPage << Tip( "" );
+				OverviewTabComponentTreemapTabPage << Icon( "" );
+				OverviewTabComponentTreemapTabPage << Closeable( 0 );
+				OverviewTabComponentTreemapTabPage << Moveable( 1 );
+				OverviewTabComponentTreemap << Background Color( 2147483647 );
+				OverviewTabComponentTreemap << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabComponentTreemap << Enabled( 1 );
+				OverviewTabComponentTreemap << Horizontal Alignment( "Default" );
+				OverviewTabComponentTreemap << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabComponentTreemap << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabComponentTreemap << Text Color( 2147483647 );
+				OverviewTabComponentTreemap << Vertical Alignment( "Default" );
+				OverviewTabComponentTreemap << Visibility( "Visible" );
+				OverviewTabComponentTreemap << set horizontal( 0 );
+				OverviewTabLocationTreemapTabPage << Background Color( 2147483647 );
+				OverviewTabLocationTreemapTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabLocationTreemapTabPage << Enabled( 1 );
+				OverviewTabLocationTreemapTabPage << Horizontal Alignment( "Default" );
+				OverviewTabLocationTreemapTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabLocationTreemapTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabLocationTreemapTabPage << Text Color( 2147483647 );
+				OverviewTabLocationTreemapTabPage << Vertical Alignment( "Default" );
+				OverviewTabLocationTreemapTabPage << Visibility( "Visible" );
+				OverviewTabLocationTreemapTabPage << Title( "Location Treemap" );
+				OverviewTabLocationTreemapTabPage << Tip( "" );
+				OverviewTabLocationTreemapTabPage << Icon( "" );
+				OverviewTabLocationTreemapTabPage << Closeable( 0 );
+				OverviewTabLocationTreemapTabPage << Moveable( 1 );
+				OverviewTabLocationTreemap << Background Color( 2147483647 );
+				OverviewTabLocationTreemap << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabLocationTreemap << Enabled( 1 );
+				OverviewTabLocationTreemap << Horizontal Alignment( "Default" );
+				OverviewTabLocationTreemap << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabLocationTreemap << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				OverviewTabLocationTreemap << Text Color( 2147483647 );
+				OverviewTabLocationTreemap << Vertical Alignment( "Default" );
+				OverviewTabLocationTreemap << Visibility( "Visible" );
+				OverviewTabLocationTreemap << set horizontal( 0 );
+				PriorityTab << Background Color( 2147483647 );
+				PriorityTab << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTab << Enabled( 1 );
+				PriorityTab << Horizontal Alignment( "Default" );
+				PriorityTab << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTab << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTab << Text Color( 2147483647 );
+				PriorityTab << Vertical Alignment( "Default" );
+				PriorityTab << Visibility( "Visible" );
+				PriorityTab << Title( "Priority" );
+				PriorityTab << Tip( "" );
+				PriorityTab << Icon( "" );
+				PriorityTab << Closeable( 0 );
+				PriorityTab << Moveable( 0 );
+				PriorityDataFilterContext << Background Color( 2147483647 );
+				PriorityDataFilterContext << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityDataFilterContext << Enabled( 1 );
+				PriorityDataFilterContext << Horizontal Alignment( "Default" );
+				PriorityDataFilterContext << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityDataFilterContext << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityDataFilterContext << Text Color( 2147483647 );
+				PriorityDataFilterContext << Vertical Alignment( "Default" );
+				PriorityDataFilterContext << Visibility( "Visible" );
+				PriorityTabSplitter1 << Background Color( 2147483647 );
+				PriorityTabSplitter1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter1 << Enabled( 1 );
+				PriorityTabSplitter1 << Horizontal Alignment( "Default" );
+				PriorityTabSplitter1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter1 << Text Color( 2147483647 );
+				PriorityTabSplitter1 << Vertical Alignment( "Default" );
+				PriorityTabSplitter1 << Visibility( "Visible" );
+				PriorityTabSplitter1 << Dockable( 1 );
+				PriorityTabSplitter1 << Set Width( 1914 );
+				PriorityTabSplitter1 << Set Height( 923 );
+				PriorityTabSplitter1 << Set Sizes( {0.499036608863198, 0.500963391136802} );
+				PriorityTabSplitter1 << set horizontal( 1 );
+				PriorityTabSplitter1 << Set Min Size( 433, 543 );
+				PriorityTabSplitter1 << Set Max Size( 60163, 90166 );
+				PriorityTabSplitter1 << Set Auto Stretching( 1, 1 );
+				PriorityTabDataFilterSource1 << Background Color( 2147483647 );
+				PriorityTabDataFilterSource1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource1 << Enabled( 1 );
+				PriorityTabDataFilterSource1 << Horizontal Alignment( "Default" );
+				PriorityTabDataFilterSource1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource1 << Text Color( 2147483647 );
+				PriorityTabDataFilterSource1 << Vertical Alignment( "Default" );
+				PriorityTabDataFilterSource1 << Visibility( "Visible" );
+				PriorityTabSplitter2 << Background Color( 2147483647 );
+				PriorityTabSplitter2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter2 << Enabled( 1 );
+				PriorityTabSplitter2 << Horizontal Alignment( "Default" );
+				PriorityTabSplitter2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter2 << Text Color( 2147483647 );
+				PriorityTabSplitter2 << Vertical Alignment( "Default" );
+				PriorityTabSplitter2 << Visibility( "Visible" );
+				PriorityTabSplitter2 << Dockable( 0 );
+				PriorityTabSplitter2 << Set Width( 914 );
+				PriorityTabSplitter2 << Set Height( 883 );
+				PriorityTabSplitter2 << Set Sizes( {0.146739130434783, 0.853260869565217} );
+				PriorityTabSplitter2 << set horizontal( 0 );
+				PriorityTabSplitter2 << Set Min Size( 230, 503 );
+				PriorityTabSplitter2 << Set Max Size( 30080, 90126 );
+				PriorityTabSplitter2 << Set Auto Stretching( 1, 1 );
+				PriorityTabPriorityBarTabPage << Background Color( 2147483647 );
+				PriorityTabPriorityBarTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabPriorityBarTabPage << Enabled( 1 );
+				PriorityTabPriorityBarTabPage << Horizontal Alignment( "Default" );
+				PriorityTabPriorityBarTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabPriorityBarTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabPriorityBarTabPage << Text Color( 2147483647 );
+				PriorityTabPriorityBarTabPage << Vertical Alignment( "Default" );
+				PriorityTabPriorityBarTabPage << Visibility( "Visible" );
+				PriorityTabPriorityBarTabPage << Title( "Priority Frequency Bar Chart" );
+				PriorityTabPriorityBarTabPage << Tip( "" );
+				PriorityTabPriorityBarTabPage << Icon( "" );
+				PriorityTabPriorityBarTabPage << Closeable( 0 );
+				PriorityTabPriorityBarTabPage << Moveable( 1 );
+				PriorityTabPriorityBar << Background Color( 2147483647 );
+				PriorityTabPriorityBar << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabPriorityBar << Enabled( 1 );
+				PriorityTabPriorityBar << Horizontal Alignment( "Default" );
+				PriorityTabPriorityBar << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabPriorityBar << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabPriorityBar << Text Color( 2147483647 );
+				PriorityTabPriorityBar << Vertical Alignment( "Default" );
+				PriorityTabPriorityBar << Visibility( "Visible" );
+				PriorityTabPriorityBar << set horizontal( 0 );
+				PriorityTabDataFilterSource2 << Background Color( 2147483647 );
+				PriorityTabDataFilterSource2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource2 << Enabled( 1 );
+				PriorityTabDataFilterSource2 << Horizontal Alignment( "Default" );
+				PriorityTabDataFilterSource2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource2 << Text Color( 2147483647 );
+				PriorityTabDataFilterSource2 << Vertical Alignment( "Default" );
+				PriorityTabDataFilterSource2 << Visibility( "Visible" );
+				PriorityTabSplitter3 << Background Color( 2147483647 );
+				PriorityTabSplitter3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter3 << Enabled( 1 );
+				PriorityTabSplitter3 << Horizontal Alignment( "Default" );
+				PriorityTabSplitter3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter3 << Text Color( 2147483647 );
+				PriorityTabSplitter3 << Vertical Alignment( "Default" );
+				PriorityTabSplitter3 << Visibility( "Visible" );
+				PriorityTabSplitter3 << Dockable( 0 );
+				PriorityTabSplitter3 << Set Width( 874 );
+				PriorityTabSplitter3 << Set Height( 687 );
+				PriorityTabSplitter3 << Set Sizes( {0.383631713554987, 0.616368286445013} );
+				PriorityTabSplitter3 << set horizontal( 0 );
+				PriorityTabSplitter3 << Set Min Size( 160, 307 );
+				PriorityTabSplitter3 << Set Max Size( 30040, 60063 );
+				PriorityTabSplitter3 << Set Auto Stretching( 1, 1 );
+				PriorityTabProductBarTabPage << Background Color( 2147483647 );
+				PriorityTabProductBarTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabProductBarTabPage << Enabled( 1 );
+				PriorityTabProductBarTabPage << Horizontal Alignment( "Default" );
+				PriorityTabProductBarTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabProductBarTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabProductBarTabPage << Text Color( 2147483647 );
+				PriorityTabProductBarTabPage << Vertical Alignment( "Default" );
+				PriorityTabProductBarTabPage << Visibility( "Visible" );
+				PriorityTabProductBarTabPage << Title( "Product Frequency Bar Chart" );
+				PriorityTabProductBarTabPage << Tip( "" );
+				PriorityTabProductBarTabPage << Icon( "" );
+				PriorityTabProductBarTabPage << Closeable( 0 );
+				PriorityTabProductBarTabPage << Moveable( 1 );
+				PriorityTabProductBar << Background Color( 2147483647 );
+				PriorityTabProductBar << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabProductBar << Enabled( 1 );
+				PriorityTabProductBar << Horizontal Alignment( "Default" );
+				PriorityTabProductBar << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabProductBar << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabProductBar << Text Color( 2147483647 );
+				PriorityTabProductBar << Vertical Alignment( "Default" );
+				PriorityTabProductBar << Visibility( "Visible" );
+				PriorityTabProductBar << set horizontal( 0 );
+				PriorityTabDataFilterSource3 << Background Color( 2147483647 );
+				PriorityTabDataFilterSource3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource3 << Enabled( 1 );
+				PriorityTabDataFilterSource3 << Horizontal Alignment( "Default" );
+				PriorityTabDataFilterSource3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabDataFilterSource3 << Text Color( 2147483647 );
+				PriorityTabDataFilterSource3 << Vertical Alignment( "Default" );
+				PriorityTabDataFilterSource3 << Visibility( "Visible" );
+				PriorityTabFreqBarTabPage << Background Color( 2147483647 );
+				PriorityTabFreqBarTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabFreqBarTabPage << Enabled( 1 );
+				PriorityTabFreqBarTabPage << Horizontal Alignment( "Default" );
+				PriorityTabFreqBarTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabFreqBarTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabFreqBarTabPage << Text Color( 2147483647 );
+				PriorityTabFreqBarTabPage << Vertical Alignment( "Default" );
+				PriorityTabFreqBarTabPage << Visibility( "Visible" );
+				PriorityTabFreqBarTabPage << Title( "Component Frequency Bar Chart" );
+				PriorityTabFreqBarTabPage << Tip( "" );
+				PriorityTabFreqBarTabPage << Icon( "" );
+				PriorityTabFreqBarTabPage << Closeable( 0 );
+				PriorityTabFreqBarTabPage << Moveable( 1 );
+				PriorityTabFreqBar << Background Color( 2147483647 );
+				PriorityTabFreqBar << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabFreqBar << Enabled( 1 );
+				PriorityTabFreqBar << Horizontal Alignment( "Default" );
+				PriorityTabFreqBar << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabFreqBar << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabFreqBar << Text Color( 2147483647 );
+				PriorityTabFreqBar << Vertical Alignment( "Default" );
+				PriorityTabFreqBar << Visibility( "Visible" );
+				PriorityTabFreqBar << set horizontal( 0 );
+				PriorityTabSplitter4 << Background Color( 2147483647 );
+				PriorityTabSplitter4 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter4 << Enabled( 1 );
+				PriorityTabSplitter4 << Horizontal Alignment( "Default" );
+				PriorityTabSplitter4 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter4 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabSplitter4 << Text Color( 2147483647 );
+				PriorityTabSplitter4 << Vertical Alignment( "Default" );
+				PriorityTabSplitter4 << Visibility( "Visible" );
+				PriorityTabSplitter4 << Dockable( 0 );
+				PriorityTabSplitter4 << Set Width( 937 );
+				PriorityTabSplitter4 << Set Height( 903 );
+				PriorityTabSplitter4 << Set Sizes( {0.476086956521739, 0.523913043478261} );
+				PriorityTabSplitter4 << set horizontal( 0 );
+				PriorityTabSplitter4 << Set Min Size( 140, 287 );
+				PriorityTabSplitter4 << Set Max Size( 30020, 60043 );
+				PriorityTabSplitter4 << Set Auto Stretching( 1, 1 );
+				PriorityTabScatterplotTabPage << Background Color( 2147483647 );
+				PriorityTabScatterplotTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabScatterplotTabPage << Enabled( 1 );
+				PriorityTabScatterplotTabPage << Horizontal Alignment( "Default" );
+				PriorityTabScatterplotTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabScatterplotTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabScatterplotTabPage << Text Color( 2147483647 );
+				PriorityTabScatterplotTabPage << Vertical Alignment( "Default" );
+				PriorityTabScatterplotTabPage << Visibility( "Visible" );
+				PriorityTabScatterplotTabPage << Title( "Completion Time (in days) vs. Creation Date Scatterplot" );
+				PriorityTabScatterplotTabPage << Tip( "" );
+				PriorityTabScatterplotTabPage << Icon( "" );
+				PriorityTabScatterplotTabPage << Closeable( 0 );
+				PriorityTabScatterplotTabPage << Moveable( 1 );
+				PriorityTabScatterplot << Background Color( 2147483647 );
+				PriorityTabScatterplot << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabScatterplot << Enabled( 1 );
+				PriorityTabScatterplot << Horizontal Alignment( "Default" );
+				PriorityTabScatterplot << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabScatterplot << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabScatterplot << Text Color( 2147483647 );
+				PriorityTabScatterplot << Vertical Alignment( "Default" );
+				PriorityTabScatterplot << Visibility( "Visible" );
+				PriorityTabScatterplot << set horizontal( 0 );
+				PriorityTabBoxplotTabPage << Background Color( 2147483647 );
+				PriorityTabBoxplotTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabBoxplotTabPage << Enabled( 1 );
+				PriorityTabBoxplotTabPage << Horizontal Alignment( "Default" );
+				PriorityTabBoxplotTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabBoxplotTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabBoxplotTabPage << Text Color( 2147483647 );
+				PriorityTabBoxplotTabPage << Vertical Alignment( "Default" );
+				PriorityTabBoxplotTabPage << Visibility( "Visible" );
+				PriorityTabBoxplotTabPage << Title( "Completion Time (in days) Boxplot by Priority" );
+				PriorityTabBoxplotTabPage << Tip( "" );
+				PriorityTabBoxplotTabPage << Icon( "" );
+				PriorityTabBoxplotTabPage << Closeable( 0 );
+				PriorityTabBoxplotTabPage << Moveable( 1 );
+				PriorityTabBoxplot << Background Color( 2147483647 );
+				PriorityTabBoxplot << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabBoxplot << Enabled( 1 );
+				PriorityTabBoxplot << Horizontal Alignment( "Default" );
+				PriorityTabBoxplot << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabBoxplot << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				PriorityTabBoxplot << Text Color( 2147483647 );
+				PriorityTabBoxplot << Vertical Alignment( "Default" );
+				PriorityTabBoxplot << Visibility( "Visible" );
+				PriorityTabBoxplot << set horizontal( 0 );
+				ComponentTab << Background Color( 2147483647 );
+				ComponentTab << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTab << Enabled( 1 );
+				ComponentTab << Horizontal Alignment( "Default" );
+				ComponentTab << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTab << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTab << Text Color( 2147483647 );
+				ComponentTab << Vertical Alignment( "Default" );
+				ComponentTab << Visibility( "Visible" );
+				ComponentTab << Title( "Component Breakdown" );
+				ComponentTab << Tip( "" );
+				ComponentTab << Icon( "" );
+				ComponentTab << Closeable( 0 );
+				ComponentTab << Moveable( 0 );
+				ComponentDataFilterContext << Background Color( 2147483647 );
+				ComponentDataFilterContext << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentDataFilterContext << Enabled( 1 );
+				ComponentDataFilterContext << Horizontal Alignment( "Default" );
+				ComponentDataFilterContext << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentDataFilterContext << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentDataFilterContext << Text Color( 2147483647 );
+				ComponentDataFilterContext << Vertical Alignment( "Default" );
+				ComponentDataFilterContext << Visibility( "Visible" );
+				ComponentTabSplitter1 << Background Color( 2147483647 );
+				ComponentTabSplitter1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter1 << Enabled( 1 );
+				ComponentTabSplitter1 << Horizontal Alignment( "Default" );
+				ComponentTabSplitter1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter1 << Text Color( 2147483647 );
+				ComponentTabSplitter1 << Vertical Alignment( "Default" );
+				ComponentTabSplitter1 << Visibility( "Visible" );
+				ComponentTabSplitter1 << Dockable( 1 );
+				ComponentTabSplitter1 << Set Width( 1914 );
+				ComponentTabSplitter1 << Set Height( 923 );
+				ComponentTabSplitter1 << Set Sizes( {0.485869565217391, 0.514130434782609} );
+				ComponentTabSplitter1 << set horizontal( 0 );
+				ComponentTabSplitter1 << Set Min Size( 550, 407 );
+				ComponentTabSplitter1 << Set Max Size( 90166, 60163 );
+				ComponentTabSplitter1 << Set Auto Stretching( 1, 1 );
+				ComponentTabDataFilterSource1 << Background Color( 2147483647 );
+				ComponentTabDataFilterSource1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource1 << Enabled( 1 );
+				ComponentTabDataFilterSource1 << Horizontal Alignment( "Default" );
+				ComponentTabDataFilterSource1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource1 << Text Color( 2147483647 );
+				ComponentTabDataFilterSource1 << Vertical Alignment( "Default" );
+				ComponentTabDataFilterSource1 << Visibility( "Visible" );
+				ComponentTabSplitter2 << Background Color( 2147483647 );
+				ComponentTabSplitter2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter2 << Enabled( 1 );
+				ComponentTabSplitter2 << Horizontal Alignment( "Default" );
+				ComponentTabSplitter2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter2 << Text Color( 2147483647 );
+				ComponentTabSplitter2 << Vertical Alignment( "Default" );
+				ComponentTabSplitter2 << Visibility( "Visible" );
+				ComponentTabSplitter2 << Dockable( 0 );
+				ComponentTabSplitter2 << Set Width( 1874 );
+				ComponentTabSplitter2 << Set Height( 407 );
+				ComponentTabSplitter2 << Set Sizes( {0.291958041958042, 0.708041958041958} );
+				ComponentTabSplitter2 << set horizontal( 1 );
+				ComponentTabSplitter2 << Set Min Size( 510, 202 );
+				ComponentTabSplitter2 << Set Max Size( 90126, 30080 );
+				ComponentTabSplitter2 << Set Auto Stretching( 1, 1 );
+				ComponentTabLocationTreemapTabPage << Background Color( 2147483647 );
+				ComponentTabLocationTreemapTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabLocationTreemapTabPage << Enabled( 1 );
+				ComponentTabLocationTreemapTabPage << Horizontal Alignment( "Default" );
+				ComponentTabLocationTreemapTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabLocationTreemapTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabLocationTreemapTabPage << Text Color( 2147483647 );
+				ComponentTabLocationTreemapTabPage << Vertical Alignment( "Default" );
+				ComponentTabLocationTreemapTabPage << Visibility( "Visible" );
+				ComponentTabLocationTreemapTabPage << Title( "Location Treemap" );
+				ComponentTabLocationTreemapTabPage << Tip( "" );
+				ComponentTabLocationTreemapTabPage << Icon( "" );
+				ComponentTabLocationTreemapTabPage << Closeable( 0 );
+				ComponentTabLocationTreemapTabPage << Moveable( 1 );
+				ComponentTabLocationTreemap << Background Color( 2147483647 );
+				ComponentTabLocationTreemap << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabLocationTreemap << Enabled( 1 );
+				ComponentTabLocationTreemap << Horizontal Alignment( "Default" );
+				ComponentTabLocationTreemap << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabLocationTreemap << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabLocationTreemap << Text Color( 2147483647 );
+				ComponentTabLocationTreemap << Vertical Alignment( "Default" );
+				ComponentTabLocationTreemap << Visibility( "Visible" );
+				ComponentTabLocationTreemap << set horizontal( 0 );
+				ComponentTabDataFilterSource2 << Background Color( 2147483647 );
+				ComponentTabDataFilterSource2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource2 << Enabled( 1 );
+				ComponentTabDataFilterSource2 << Horizontal Alignment( "Default" );
+				ComponentTabDataFilterSource2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource2 << Text Color( 2147483647 );
+				ComponentTabDataFilterSource2 << Vertical Alignment( "Default" );
+				ComponentTabDataFilterSource2 << Visibility( "Visible" );
+				ComponentTabSplitter3 << Background Color( 2147483647 );
+				ComponentTabSplitter3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter3 << Enabled( 1 );
+				ComponentTabSplitter3 << Horizontal Alignment( "Default" );
+				ComponentTabSplitter3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabSplitter3 << Text Color( 2147483647 );
+				ComponentTabSplitter3 << Vertical Alignment( "Default" );
+				ComponentTabSplitter3 << Visibility( "Visible" );
+				ComponentTabSplitter3 << Dockable( 0 );
+				ComponentTabSplitter3 << Set Width( 1285 );
+				ComponentTabSplitter3 << Set Height( 367 );
+				ComponentTabSplitter3 << Set Sizes( {0.469444444444437, 0.530555555555555} );
+				ComponentTabSplitter3 << set horizontal( 1 );
+				ComponentTabSplitter3 << Set Min Size( 319, 162 );
+				ComponentTabSplitter3 << Set Max Size( 60063, 30040 );
+				ComponentTabSplitter3 << Set Auto Stretching( 1, 1 );
+				ComponentTabProductTreemapTabPage << Background Color( 2147483647 );
+				ComponentTabProductTreemapTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabProductTreemapTabPage << Enabled( 1 );
+				ComponentTabProductTreemapTabPage << Horizontal Alignment( "Default" );
+				ComponentTabProductTreemapTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabProductTreemapTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabProductTreemapTabPage << Text Color( 2147483647 );
+				ComponentTabProductTreemapTabPage << Vertical Alignment( "Default" );
+				ComponentTabProductTreemapTabPage << Visibility( "Visible" );
+				ComponentTabProductTreemapTabPage << Title( "Product Treemap" );
+				ComponentTabProductTreemapTabPage << Tip( "" );
+				ComponentTabProductTreemapTabPage << Icon( "" );
+				ComponentTabProductTreemapTabPage << Closeable( 0 );
+				ComponentTabProductTreemapTabPage << Moveable( 1 );
+				ComponentTabProductTreemap << Background Color( 2147483647 );
+				ComponentTabProductTreemap << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabProductTreemap << Enabled( 1 );
+				ComponentTabProductTreemap << Horizontal Alignment( "Default" );
+				ComponentTabProductTreemap << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabProductTreemap << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabProductTreemap << Text Color( 2147483647 );
+				ComponentTabProductTreemap << Vertical Alignment( "Default" );
+				ComponentTabProductTreemap << Visibility( "Visible" );
+				ComponentTabProductTreemap << set horizontal( 0 );
+				ComponentTabDataFilterSource3 << Background Color( 2147483647 );
+				ComponentTabDataFilterSource3 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource3 << Enabled( 1 );
+				ComponentTabDataFilterSource3 << Horizontal Alignment( "Default" );
+				ComponentTabDataFilterSource3 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource3 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabDataFilterSource3 << Text Color( 2147483647 );
+				ComponentTabDataFilterSource3 << Vertical Alignment( "Default" );
+				ComponentTabDataFilterSource3 << Visibility( "Visible" );
+				ComponentTabComponentTreemapTabPage << Background Color( 2147483647 );
+				ComponentTabComponentTreemapTabPage << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabComponentTreemapTabPage << Enabled( 1 );
+				ComponentTabComponentTreemapTabPage << Horizontal Alignment( "Default" );
+				ComponentTabComponentTreemapTabPage << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabComponentTreemapTabPage << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabComponentTreemapTabPage << Text Color( 2147483647 );
+				ComponentTabComponentTreemapTabPage << Vertical Alignment( "Default" );
+				ComponentTabComponentTreemapTabPage << Visibility( "Visible" );
+				ComponentTabComponentTreemapTabPage << Title( "Component Treemap" );
+				ComponentTabComponentTreemapTabPage << Tip( "" );
+				ComponentTabComponentTreemapTabPage << Icon( "" );
+				ComponentTabComponentTreemapTabPage << Closeable( 0 );
+				ComponentTabComponentTreemapTabPage << Moveable( 1 );
+				ComponentTabComponentTreemap << Background Color( 2147483647 );
+				ComponentTabComponentTreemap << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabComponentTreemap << Enabled( 1 );
+				ComponentTabComponentTreemap << Horizontal Alignment( "Default" );
+				ComponentTabComponentTreemap << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabComponentTreemap << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabComponentTreemap << Text Color( 2147483647 );
+				ComponentTabComponentTreemap << Vertical Alignment( "Default" );
+				ComponentTabComponentTreemap << Visibility( "Visible" );
+				ComponentTabComponentTreemap << set horizontal( 0 );
+				ComponentSplitter4 << Background Color( 2147483647 );
+				ComponentSplitter4 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentSplitter4 << Enabled( 1 );
+				ComponentSplitter4 << Horizontal Alignment( "Default" );
+				ComponentSplitter4 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentSplitter4 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentSplitter4 << Text Color( 2147483647 );
+				ComponentSplitter4 << Vertical Alignment( "Default" );
+				ComponentSplitter4 << Visibility( "Visible" );
+				ComponentSplitter4 << Dockable( 1 );
+				ComponentSplitter4 << Set Width( 1894 );
+				ComponentSplitter4 << Set Height( 453 );
+				ComponentSplitter4 << Set Sizes( {0.497041420118343, 0.502958579881657} );
+				ComponentSplitter4 << set horizontal( 1 );
+				ComponentSplitter4 << Set Min Size( 283, 142 );
+				ComponentSplitter4 << Set Max Size( 60043, 30020 );
+				ComponentSplitter4 << Set Auto Stretching( 1, 1 );
+				ComponentTabScatterplotTabPage1 << Background Color( 2147483647 );
+				ComponentTabScatterplotTabPage1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplotTabPage1 << Enabled( 1 );
+				ComponentTabScatterplotTabPage1 << Horizontal Alignment( "Default" );
+				ComponentTabScatterplotTabPage1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplotTabPage1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplotTabPage1 << Text Color( 2147483647 );
+				ComponentTabScatterplotTabPage1 << Vertical Alignment( "Default" );
+				ComponentTabScatterplotTabPage1 << Visibility( "Visible" );
+				ComponentTabScatterplotTabPage1 << Title( "Completion Time (in days) vs. Component Scatterplot" );
+				ComponentTabScatterplotTabPage1 << Tip( "" );
+				ComponentTabScatterplotTabPage1 << Icon( "" );
+				ComponentTabScatterplotTabPage1 << Closeable( 0 );
+				ComponentTabScatterplotTabPage1 << Moveable( 1 );
+				ComponentTabScatterplot1 << Background Color( 2147483647 );
+				ComponentTabScatterplot1 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplot1 << Enabled( 1 );
+				ComponentTabScatterplot1 << Horizontal Alignment( "Default" );
+				ComponentTabScatterplot1 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplot1 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplot1 << Text Color( 2147483647 );
+				ComponentTabScatterplot1 << Vertical Alignment( "Default" );
+				ComponentTabScatterplot1 << Visibility( "Visible" );
+				ComponentTabScatterplot1 << set horizontal( 0 );
+				ComponentTabScatterplotTabPage2 << Background Color( 2147483647 );
+				ComponentTabScatterplotTabPage2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplotTabPage2 << Enabled( 1 );
+				ComponentTabScatterplotTabPage2 << Horizontal Alignment( "Default" );
+				ComponentTabScatterplotTabPage2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplotTabPage2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplotTabPage2 << Text Color( 2147483647 );
+				ComponentTabScatterplotTabPage2 << Vertical Alignment( "Default" );
+				ComponentTabScatterplotTabPage2 << Visibility( "Visible" );
+				ComponentTabScatterplotTabPage2 << Title( "Virulence vs. Component Scatterplot" );
+				ComponentTabScatterplotTabPage2 << Tip( "" );
+				ComponentTabScatterplotTabPage2 << Icon( "" );
+				ComponentTabScatterplotTabPage2 << Closeable( 0 );
+				ComponentTabScatterplotTabPage2 << Moveable( 1 );
+				ComponentTabScatterplot2 << Background Color( 2147483647 );
+				ComponentTabScatterplot2 << Border( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplot2 << Enabled( 1 );
+				ComponentTabScatterplot2 << Horizontal Alignment( "Default" );
+				ComponentTabScatterplot2 << Margin( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplot2 << Padding( {Left( 0 ), Top( 0 ), Right( 0 ), Bottom( 0 )} );
+				ComponentTabScatterplot2 << Text Color( 2147483647 );
+				ComponentTabScatterplot2 << Vertical Alignment( "Default" );
+				ComponentTabScatterplot2 << Visibility( "Visible" );
+				ComponentTabScatterplot2 << set horizontal( 0 );
+			)
+		)
+	),
+	Initialize(
+		Dashboard << Auto Launch( 1 );
+		Dashboard << Set Module Type( "Report" );
+		Dashboard << Set Window Title( "^APPNAME" );
+		Dashboard << Set Min Size( 0, 0 );
+		Dashboard << Set Max Size( 30000, 30000 );
+		Dashboard << Set Auto Stretching( 1, 1 );
+	)
+) << Run
